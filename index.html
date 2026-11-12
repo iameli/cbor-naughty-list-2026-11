@@ -1,0 +1,2342 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CBOR Naughty List — Nov 2026 edition</title>
+<style>
+  :root {
+    --bg:#fbfbfa; --panel:#fff; --fg:#16181d; --muted:#6b7280; --border:#e4e4e7;
+    --accent:#2563eb; --bad:#b91c1c; --badbg:#fef2f2; --ok:#15803d; --okbg:#f0fdf4;
+    --warn:#b45309; --warnbg:#fffbeb; --bar:#93c5fd; --barhot:#fca5a5; --dim:#9ca3af;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:#0f1115; --panel:#161920; --fg:#e5e7eb; --muted:#9ca3af; --border:#2a2f3a;
+      --accent:#60a5fa; --bad:#f87171; --badbg:#2a1416; --ok:#4ade80; --okbg:#0f2417;
+      --warn:#fbbf24; --warnbg:#2a2110; --bar:#1d4ed8; --barhot:#7f1d1d; --dim:#6b7280;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg);
+    font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+  .wrap { max-width: 1040px; margin:0 auto; padding: 40px 22px 80px; }
+  h1 { font-size: 30px; line-height:1.2; margin:0 0 6px; letter-spacing:-.01em; }
+  h2 { font-size: 19px; margin: 40px 0 6px; letter-spacing:-.01em; }
+  h3 { font-size: 15px; margin: 24px 0 6px; }
+  p { margin: 8px 0; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .sub { color: var(--muted); font-size: 14px; }
+  .cards { display:grid; grid-template-columns: repeat(auto-fit,minmax(165px,1fr)); gap:12px; margin:22px 0 8px; }
+  .card { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:14px 16px; }
+  .card .k { font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
+  .card .v { font-size:25px; font-weight:600; margin-top:4px; font-variant-numeric: tabular-nums; }
+  .card .n { font-size:12px; color:var(--muted); }
+  .card.bad { border-color: color-mix(in srgb, var(--bad) 35%, var(--border)); background:var(--badbg); }
+  .card.bad .v { color: var(--bad); }
+  table { width:100%; border-collapse: collapse; margin:10px 0 4px; font-size:13.5px;
+    background:var(--panel); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+  th, td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--border); vertical-align:top; }
+  th { font-size:12px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted);
+    background: color-mix(in srgb, var(--fg) 3%, var(--panel)); font-weight:600; }
+  tr:last-child td { border-bottom:none; }
+  tbody tr:hover td { background: color-mix(in srgb, var(--fg) 2.5%, var(--panel)); }
+  tr.hot td { background: var(--badbg); }
+  .num { text-align:right; font-variant-numeric: tabular-nums; white-space:nowrap; }
+  .mono, code { font-family: ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12.5px; }
+  .dim { color: var(--muted); }
+  .bar { height:7px; background: color-mix(in srgb, var(--fg) 7%, transparent); border-radius:4px; min-width:60px; overflow:hidden; }
+  .bar span { display:block; height:100%; background:var(--bar); }
+  tr.hot .bar span { background: var(--barhot); }
+  .bar.big { height:12px; }
+  .catrow { display:grid; grid-template-columns: 120px 1fr auto auto; gap:10px; align-items:center; margin:6px 0; }
+  .catlabel { font-family: ui-monospace,monospace; font-size:13px; }
+  .tag { display:inline-block; padding:1px 7px; border-radius:99px; font-size:11.5px; font-weight:600; white-space:nowrap; }
+  .tag.bad { background:var(--badbg); color:var(--bad); border:1px solid color-mix(in srgb,var(--bad) 30%,transparent); }
+  .tag.ok { background:var(--okbg); color:var(--ok); border:1px solid color-mix(in srgb,var(--ok) 30%,transparent); }
+  .tag.warn { background:var(--warnbg); color:var(--warn); border:1px solid color-mix(in srgb,var(--warn) 30%,transparent); }
+  .note { background:var(--panel); border:1px solid var(--border); border-left:3px solid var(--accent);
+    border-radius:6px; padding:12px 16px; margin:14px 0; }
+  .note.bad { border-left-color: var(--bad); }
+  .note.warn { border-left-color: var(--warn); }
+  ul { margin:8px 0; padding-left:22px; }
+  li { margin:4px 0; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  @media (max-width: 760px) { .grid2 { grid-template-columns:1fr; } .catrow { grid-template-columns: 90px 1fr auto; } .catrow .dim { display:none; } }
+  #filter { width:100%; padding:8px 10px; margin:10px 0 0; border:1px solid var(--border); border-radius:7px;
+    background:var(--panel); color:var(--fg); font:inherit; font-size:13.5px; }
+  td { overflow-wrap: anywhere; }
+  .path { max-width: 320px; word-break: break-word; overflow-wrap: anywhere; }
+  .uri { max-width: 430px; overflow-wrap:anywhere; }
+  footer { margin-top:50px; padding-top:16px; border-top:1px solid var(--border); color:var(--muted); font-size:12.5px; }
+  @media print {
+    body { background:#fff; } .wrap { max-width:none; padding:0; }
+    h2 { page-break-after: avoid; } table { page-break-inside: avoid; font-size:11px; }
+    #filter { display:none; } a { color:inherit; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<p class="sub">Nov 2026 edition · atproto data-model audit · 2026-11-12</p>
+<h1>CBOR Naughty List</h1>
+<p class="sub">Who put what on the wire: every record in the Jetstream v2 archive, re-checked byte-for-byte
+against DRISL and the atproto data model — and against bnewbold's <em>number</em> proposal, which would
+allow floats but forbid floats that hold whole numbers.</p>
+
+<div class="cards">
+  <div class="card"><div class="k">records checked</div><div class="v">25.37B</div><div class="n">25,365,355,119 record versions</div></div>
+  <div class="card"><div class="k">findings</div><div class="v">4.15M</div><div class="n">across 8,960 accounts</div></div>
+  <div class="card bad"><div class="k">break the proposal</div><div class="v">139</div><div class="n">records · 17 accounts</div></div>
+  <div class="card"><div class="k">float16 / float32</div><div class="v">0</div><div class="n">none in 25.37B records</div></div>
+</div>
+
+<div class="note bad">
+  <strong>The headline:</strong> 139 records (1 in 182,484,569) contain a float that
+  holds a whole number, in 17 accounts. But almost all of them are <em>huge</em> magnitudes
+  (&ge; 2<sup>53</sup>), where float64 cannot represent a fraction at all — 16 of
+  212 findings are beyond int64 entirely, so no integer encoding exists for them. Ordinary
+  “<code>1.0</code> instead of <code>1</code>” mistakes are rare: 10 of 212
+  findings sit below 2<sup>53</sup>, where an int encoding would be exact.
+</div>
+
+<h2>1 · The number proposal</h2>
+<p>The proposal makes <code>int</code> a lexicon-level concept and says a CBOR float must never hold a
+whole number. To test that, every float in the corpus was classified by width, finiteness and whether
+<code>f == trunc(f)</code>.</p>
+
+<table>
+  <thead><tr><th>float kind</th><th class="num">findings</th><th class="num">accounts</th><th>proposal</th><th>example</th><th>from</th></tr></thead>
+  <tbody><tr>
+      <td><code>float64_fraction</code></td>
+      <td class="num">3,716,259</td>
+      <td class="num">3,948</td>
+      <td><span class="tag ok">allowed</span></td>
+      <td class="mono">1892.1527581739217</td>
+      <td class="mono dim">app.weather.record</td>
+    </tr>
+<tr>
+      <td><code>float64_integral</code></td>
+      <td class="num">212</td>
+      <td class="num">17</td>
+      <td><span class="tag bad">breaks proposal</span></td>
+      <td class="mono">1e+29</td>
+      <td class="mono dim">app.bsky.feed.generator</td>
+    </tr></tbody>
+</table>
+
+<div class="grid2">
+  <div>
+    <h3>Why the big ones are unavoidable</h3>
+    <p>A float64 has 52 bits of mantissa, so every value at or above 2<sup>53</sup> is already a whole
+    number. Under a strict “floats must not be integers” rule, those values become illegal by
+    construction — and past 2<sup>63</sup> they cannot be represented as an integer at all.</p>
+    <table>
+      <thead><tr><th>float64_integral</th><th class="num">findings</th></tr></thead>
+      <tbody><tr><td>beyond 2^53</td><td class='num'>186</td></tr>
+<tr><td>beyond int64</td><td class='num'>16</td></tr>
+<tr><td>(within int64)</td><td class='num'>10</td></tr></tbody>
+    </table>
+  </div>
+  <div>
+    <h3>What floats actually look like</h3>
+    <p>65.43k records carry floats and 0.0% of the corpus has one.
+    Virtually all of them are legitimate fractions — measurements, coordinates, confidence scores —
+    which is the usage the proposal legitimises.</p>
+    <table>
+      <thead><tr><th class="num">records with floats</th><th class="num">of all records</th></tr></thead>
+      <tbody><tr><td class="num">65,426</td><td class="num">0.0%</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<h3>Where the floats live</h3>
+<table>
+  <thead><tr><th>collection</th><th class="num">findings</th><th class="num">accounts</th><th>example path</th><th class="num">example value</th><th></th></tr></thead>
+  <tbody><tr>
+      <td><code>app.weather.record</code></td>
+      <td class="num">3,683,308</td>
+      <td class="num">1</td>
+      <td class="path dim">cloudBase</td>
+      <td class="num mono">1361.9547587428417</td>
+      <td><div class="bar"><span style="width:100.0%"></span></div></td>
+    </tr>
+<tr>
+      <td><code>net.anisota.harvest.minigame</code></td>
+      <td class="num">9,739</td>
+      <td class="num">3,616</td>
+      <td class="path dim">peakHarvestRate</td>
+      <td class="num mono">88.67</td>
+      <td><div class="bar"><span style="width:0.3%"></span></div></td>
+    </tr>
+<tr>
+      <td><code>org.newtoncivic.atproto.testdata</code></td>
+      <td class="num">5,404</td>
+      <td class="num">1</td>
+      <td class="path dim">value</td>
+      <td class="num mono">348.02</td>
+      <td><div class="bar"><span style="width:0.1%"></span></div></td>
+    </tr>
+<tr>
+      <td><code>me.comind.relationship.link</code></td>
+      <td class="num">4,362</td>
+      <td class="num">3</td>
+      <td class="path dim">generated.strength</td>
+      <td class="num mono">0.8</td>
+      <td><div class="bar"><span style="width:0.1%"></span></div></td>
+    </tr>
+<tr>
+      <td><code>app.bsky.blaseball.player</code></td>
+      <td class="num">2,328</td>
+      <td class="num">1</td>
+      <td class="path dim">baseStats.accuracy</td>
+      <td class="num mono">2.5048727742800656</td>
+      <td><div class="bar"><span style="width:0.1%"></span></div></td>
+    </tr>
+<tr>
+      <td><code>test.hypermedia.record</code></td>
+      <td class="num">1,992</td>
+      <td class="num">1</td>
+      <td class="path dim">record.data.latitude</td>
+      <td class="num mono">33.59733</td>
+      <td><div class="bar"><span style="width:0.1%"></span></div></td>
+    </tr>
+<tr>
+      <td><code>com.blatball.player</code></td>
+      <td class="num">1,877</td>
+      <td class="num">1</td>
+      <td class="path dim">baseStats.accuracy</td>
+      <td class="num mono">2.9627012071245793</td>
+      <td><div class="bar"><span style="width:0.1%"></span></div></td>
+    </tr>
+<tr>
+      <td><code>fm.teal.alpha.feed.play</code></td>
+      <td class="num">1,549</td>
+      <td class="num">5</td>
+      <td class="path dim">duration</td>
+      <td class="num mono">350.172</td>
+      <td><div class="bar"><span style="width:0.0%"></span></div></td>
+    </tr>
+<tr>
+      <td><code>dev.flo-bit.room</code></td>
+      <td class="num">1,143</td>
+      <td class="num">29</td>
+      <td class="path dim">roomState.id</td>
+      <td class="num mono">0.44345596041841717</td>
+      <td><div class="bar"><span style="width:0.0%"></span></div></td>
+    </tr>
+<tr>
+      <td><code>net.anisota.beta.game.log</code></td>
+      <td class="num">1,110</td>
+      <td class="num">231</td>
+      <td class="path dim">staminaData.currentStamina</td>
+      <td class="num mono">0.5999999999997756</td>
+      <td><div class="bar"><span style="width:0.0%"></span></div></td>
+    </tr>
+<tr>
+      <td><code>net.anisota.chronicle.harvest</code></td>
+      <td class="num">688</td>
+      <td class="num">1</td>
+      <td class="path dim">harvestData.analysis.yearlyAnalysis.2025.contentAnalysis.avgPostLength</td>
+      <td class="num mono">96.7</td>
+      <td><div class="bar"><span style="width:0.0%"></span></div></td>
+    </tr>
+<tr>
+      <td><code>app.bsky.feed.post</code></td>
+      <td class="num">516</td>
+      <td class="num">31</td>
+      <td class="path dim">big_negative_number</td>
+      <td class="num mono">-18446744073709552000.0</td>
+      <td><div class="bar"><span style="width:0.0%"></span></div></td>
+    </tr></tbody>
+</table>
+
+<h3>The 139 records that would be rejected</h3>
+<table>
+  <thead><tr><th>collection</th><th class="num">records</th><th class="num">accounts</th><th class="num">findings</th></tr></thead>
+  <tbody><tr><td><code>com.newdin.chap</code></td><td class='num'>103</td><td class='num'>3</td><td class='num'>158</td></tr>
+<tr><td><code>app.bsky.feed.post</code></td><td class='num'>14</td><td class='num'>6</td><td class='num'>18</td></tr>
+<tr><td><code>com.newdin.story</code></td><td class='num'>6</td><td class='num'>2</td><td class='num'>12</td></tr>
+<tr><td><code>dev.regnault.webfishing.save</code></td><td class='num'>2</td><td class='num'>2</td><td class='num'>10</td></tr>
+<tr><td><code>com.ruthub.entry</code></td><td class='num'>3</td><td class='num'>2</td><td class='num'>3</td></tr>
+<tr><td><code>app.bsky.feed.generator</code></td><td class='num'>2</td><td class='num'>2</td><td class='num'>2</td></tr>
+<tr><td><code>app.rocksky.song</code></td><td class='num'>2</td><td class='num'>1</td><td class='num'>2</td></tr>
+<tr><td><code>test.a.b.c.aaaaaa</code></td><td class='num'>2</td><td class='num'>1</td><td class='num'>2</td></tr>
+<tr><td><code>app.rocksky.scrobble</code></td><td class='num'>2</td><td class='num'>1</td><td class='num'>2</td></tr>
+<tr><td><code>club.stellz.lexicon.evm.currency</code></td><td class='num'>1</td><td class='num'>1</td><td class='num'>1</td></tr>
+<tr><td><code>club.stellz.lexicon.evm.transferIntent</code></td><td class='num'>1</td><td class='num'>1</td><td class='num'>1</td></tr>
+<tr><td><code>com.newdin.follows</code></td><td class='num'>1</td><td class='num'>1</td><td class='num'>1</td></tr></tbody>
+</table>
+
+<table>
+  <thead><tr><th>collection</th><th>path</th><th class="num">findings</th><th class="num">accounts</th><th class="num">example</th><th></th></tr></thead>
+  <tbody><tr>
+      <td><code>com.newdin.chap</code></td>
+      <td class="path">lineId</td>
+      <td class="num">103</td>
+      <td class="num">3</td>
+      <td class="num mono">17389733633919786.0</td>
+      <td><div class="bar"><span style="width:100.0%"></span></div></td>
+    </tr>
+<tr>
+      <td><code>com.newdin.chap</code></td>
+      <td class="path">id</td>
+      <td class="num">55</td>
+      <td class="num">3</td>
+      <td class="num mono">17389740813919786.0</td>
+      <td><div class="bar"><span style="width:53.4%"></span></div></td>
+    </tr>
+<tr>
+      <td><code>dev.regnault.webfishing.save</code></td>
+      <td class="path">hidden_players[]</td>
+      <td class="num">10</td>
+      <td class="num">2</td>
+      <td class="num mono">76561198031833390.0</td>
+      <td><div class="bar"><span style="width:9.7%"></span></div></td>
+    </tr>
+<tr>
+      <td><code>app.bsky.feed.post</code></td>
+      <td class="path">long</td>
+      <td class="num">7</td>
+      <td class="num">1</td>
+      <td class="num mono">1e+25</td>
+      <td><div class="bar"><span style="width:6.8%"></span></div></td>
+    </tr>
+<tr>
+      <td><code>com.newdin.story</code></td>
+      <td class="path">id</td>
+      <td class="num">6</td>
+      <td class="num">2</td>
+      <td class="num mono">17391728561316146.0</td>
+      <td><div class="bar"><span style="width:5.8%"></span></div></td>
+    </tr>
+<tr>
+      <td><code>com.newdin.story</code></td>
+      <td class="path">lineId</td>
+      <td class="num">6</td>
+      <td class="num">2</td>
+      <td class="num mono">17391726501316146.0</td>
+      <td><div class="bar"><span style="width:5.8%"></span></div></td>
+    </tr>
+<tr>
+      <td><code>app.bsky.feed.post</code></td>
+      <td class="path">facets[].index.byteEnd</td>
+      <td class="num">4</td>
+      <td class="num">2</td>
+      <td class="num mono">10000000000000000.0</td>
+      <td><div class="bar"><span style="width:3.9%"></span></div></td>
+    </tr>
+<tr>
+      <td><code>com.ruthub.entry</code></td>
+      <td class="path">id</td>
+      <td class="num">3</td>
+      <td class="num">2</td>
+      <td class="num mono">17392315593919786.0</td>
+      <td><div class="bar"><span style="width:2.9%"></span></div></td>
+    </tr>
+<tr>
+      <td><code>app.bsky.feed.post</code></td>
+      <td class="path">facets[].index.byteStart</td>
+      <td class="num">3</td>
+      <td class="num">1</td>
+      <td class="num mono">0.0</td>
+      <td><div class="bar"><span style="width:2.9%"></span></div></td>
+    </tr>
+<tr>
+      <td><code>app.rocksky.song</code></td>
+      <td class="path">duration</td>
+      <td class="num">2</td>
+      <td class="num">1</td>
+      <td class="num mono">130510.0</td>
+      <td><div class="bar"><span style="width:1.9%"></span></div></td>
+    </tr>
+<tr>
+      <td><code>app.rocksky.scrobble</code></td>
+      <td class="path">duration</td>
+      <td class="num">2</td>
+      <td class="num">1</td>
+      <td class="num mono">130510.0</td>
+      <td><div class="bar"><span style="width:1.9%"></span></div></td>
+    </tr>
+<tr>
+      <td><code>test.a.b.c.aaaaaa</code></td>
+      <td class="path">(record itself)</td>
+      <td class="num">2</td>
+      <td class="num">1</td>
+      <td class="num mono">73786976294838210000.0</td>
+      <td><div class="bar"><span style="width:1.9%"></span></div></td>
+    </tr>
+<tr>
+      <td><code>com.newdin.follows</code></td>
+      <td class="path">follows[].id</td>
+      <td class="num">1</td>
+      <td class="num">1</td>
+      <td class="num mono">17389733633919786.0</td>
+      <td><div class="bar"><span style="width:1.0%"></span></div></td>
+    </tr>
+<tr>
+      <td><code>club.stellz.lexicon.evm.currency</code></td>
+      <td class="path">defs.main.properties.chainId.maximum</td>
+      <td class="num">1</td>
+      <td class="num">1</td>
+      <td class="num mono">18446744073709552000.0</td>
+      <td><div class="bar"><span style="width:1.0%"></span></div></td>
+    </tr>
+<tr>
+      <td><code>app.bsky.feed.post</code></td>
+      <td class="path">embed.images[].aspectRatio.width</td>
+      <td class="num">1</td>
+      <td class="num">1</td>
+      <td class="num mono">1.6325050103102127e+194</td>
+      <td><div class="bar"><span style="width:1.0%"></span></div></td>
+    </tr>
+<tr>
+      <td><code>app.bsky.feed.post</code></td>
+      <td class="path">big_negative_number</td>
+      <td class="num">1</td>
+      <td class="num">1</td>
+      <td class="num mono">-18446744073709552000.0</td>
+      <td><div class="bar"><span style="width:1.0%"></span></div></td>
+    </tr>
+<tr>
+      <td><code>app.bsky.feed.post</code></td>
+      <td class="path">(record itself)</td>
+      <td class="num">1</td>
+      <td class="num">1</td>
+      <td class="num mono">73786976294838210000.0</td>
+      <td><div class="bar"><span style="width:1.0%"></span></div></td>
+    </tr>
+<tr>
+      <td><code>app.bsky.feed.generator</code></td>
+      <td class="path">skyfeedBuilder.blocks[].firehoseSeconds</td>
+      <td class="num">1</td>
+      <td class="num">1</td>
+      <td class="num mono">1e+29</td>
+      <td><div class="bar"><span style="width:1.0%"></span></div></td>
+    </tr>
+<tr>
+      <td><code>club.stellz.lexicon.evm.transferIntent</code></td>
+      <td class="path">defs.main.properties.amount.maximum</td>
+      <td class="num">1</td>
+      <td class="num">1</td>
+      <td class="num mono">3.402823669209385e+38</td>
+      <td><div class="bar"><span style="width:1.0%"></span></div></td>
+    </tr>
+<tr>
+      <td><code>app.bsky.feed.post</code></td>
+      <td class="path">embed.images[].aspectRatio.height</td>
+      <td class="num">1</td>
+      <td class="num">1</td>
+      <td class="num mono">8.321803461041391e+196</td>
+      <td><div class="bar"><span style="width:1.0%"></span></div></td>
+    </tr>
+<tr>
+      <td><code>app.bsky.feed.generator</code></td>
+      <td class="path">skyfeedBuilder.blocks[].count</td>
+      <td class="num">1</td>
+      <td class="num">1</td>
+      <td class="num mono">10000000000000000.0</td>
+      <td><div class="bar"><span style="width:1.0%"></span></div></td>
+    </tr></tbody>
+</table>
+
+<h2>2 · Everything else the checker found</h2>
+<p>4,151,088 findings across three categories. Only the <code>number</code> category is
+about the proposal; the rest are existing data-model and serialization issues.</p>
+
+<div class="catrow">
+      <span class="catlabel">number</span>
+      <div class="bar big"><span style="width:89.6%"></span></div>
+      <span class="num">3,720,202</span>
+      <span class="dim">(89.6%)</span>
+    </div>
+<div class="catrow">
+      <span class="catlabel">data_model</span>
+      <div class="bar big"><span style="width:10.4%"></span></div>
+      <span class="num">430,587</span>
+      <span class="dim">(10.4%)</span>
+    </div>
+<div class="catrow">
+      <span class="catlabel">encoding</span>
+      <div class="bar big"><span style="width:0.0%"></span></div>
+      <span class="num">299</span>
+      <span class="dim">(0.0%)</span>
+    </div>
+
+<table>
+  <thead><tr><th>kind</th><th>category</th><th class="num">findings</th><th class="num">breaking</th><th class="num">accounts</th><th class="num">collections</th><th></th></tr></thead>
+  <tbody><tr class="">
+      <td><code>float64_fraction</code></td>
+      <td>number</td>
+      <td class="num">3,716,259</td>
+      <td class="num"><span class="dim">0</span></td>
+      <td class="num">3,948</td>
+      <td class="num">67</td>
+      <td><div class="bar"><span style="width:100.0%"></span></div></td>
+    </tr>
+<tr class="">
+      <td><code>blob_legacy</code></td>
+      <td>data_model</td>
+      <td class="num">328,444</td>
+      <td class="num"><span class="dim">0</span></td>
+      <td class="num">4,292</td>
+      <td class="num">2</td>
+      <td><div class="bar"><span style="width:8.8%"></span></div></td>
+    </tr>
+<tr class="">
+      <td><code>blob_malformed</code></td>
+      <td>data_model</td>
+      <td class="num">41,420</td>
+      <td class="num"><span class="dim">0</span></td>
+      <td class="num">181</td>
+      <td class="num">68</td>
+      <td><div class="bar"><span style="width:1.1%"></span></div></td>
+    </tr>
+<tr class="">
+      <td><code>dollar_key</code></td>
+      <td>data_model</td>
+      <td class="num">38,968</td>
+      <td class="num"><span class="dim">0</span></td>
+      <td class="num">252</td>
+      <td class="num">86</td>
+      <td><div class="bar"><span style="width:1.0%"></span></div></td>
+    </tr>
+<tr class="">
+      <td><code>type_empty</code></td>
+      <td>data_model</td>
+      <td class="num">17,396</td>
+      <td class="num"><span class="dim">0</span></td>
+      <td class="num">71</td>
+      <td class="num">5</td>
+      <td><div class="bar"><span style="width:0.5%"></span></div></td>
+    </tr>
+<tr class="">
+      <td><code>int_unsafe</code></td>
+      <td>number</td>
+      <td class="num">3,731</td>
+      <td class="num"><span class="dim">0</span></td>
+      <td class="num">41</td>
+      <td class="num">2</td>
+      <td><div class="bar"><span style="width:0.1%"></span></div></td>
+    </tr>
+<tr class="">
+      <td><code>type_missing</code></td>
+      <td>data_model</td>
+      <td class="num">2,556</td>
+      <td class="num"><span class="dim">0</span></td>
+      <td class="num">46</td>
+      <td class="num">53</td>
+      <td><div class="bar"><span style="width:0.1%"></span></div></td>
+    </tr>
+<tr class="">
+      <td><code>type_mismatch</code></td>
+      <td>data_model</td>
+      <td class="num">1,642</td>
+      <td class="num"><span class="dim">0</span></td>
+      <td class="num">213</td>
+      <td class="num">36</td>
+      <td><div class="bar"><span style="width:0.0%"></span></div></td>
+    </tr>
+<tr class="">
+      <td><code>invalid_utf8</code></td>
+      <td>encoding</td>
+      <td class="num">270</td>
+      <td class="num"><span class="dim">0</span></td>
+      <td class="num">145</td>
+      <td class="num">5</td>
+      <td><div class="bar"><span style="width:0.0%"></span></div></td>
+    </tr>
+<tr class="hot">
+      <td><code>float64_integral</code></td>
+      <td>number</td>
+      <td class="num">212</td>
+      <td class="num">212</td>
+      <td class="num">17</td>
+      <td class="num">12</td>
+      <td><div class="bar"><span style="width:0.0%"></span></div></td>
+    </tr>
+<tr class="">
+      <td><code>type_not_string</code></td>
+      <td>data_model</td>
+      <td class="num">145</td>
+      <td class="num"><span class="dim">0</span></td>
+      <td class="num">7</td>
+      <td class="num">20</td>
+      <td><div class="bar"><span style="width:0.0%"></span></div></td>
+    </tr>
+<tr class="">
+      <td><code>malformed</code></td>
+      <td>encoding</td>
+      <td class="num">27</td>
+      <td class="num"><span class="dim">0</span></td>
+      <td class="num">3</td>
+      <td class="num">3</td>
+      <td><div class="bar"><span style="width:0.0%"></span></div></td>
+    </tr>
+<tr class="">
+      <td><code>top_level_not_map</code></td>
+      <td>data_model</td>
+      <td class="num">15</td>
+      <td class="num"><span class="dim">0</span></td>
+      <td class="num">5</td>
+      <td class="num">10</td>
+      <td><div class="bar"><span style="width:0.0%"></span></div></td>
+    </tr>
+<tr class="">
+      <td><code>key_duplicate</code></td>
+      <td>encoding</td>
+      <td class="num">1</td>
+      <td class="num"><span class="dim">0</span></td>
+      <td class="num">1</td>
+      <td class="num">1</td>
+      <td><div class="bar"><span style="width:0.0%"></span></div></td>
+    </tr>
+<tr class="">
+      <td><code>cid_not_blessed</code></td>
+      <td>data_model</td>
+      <td class="num">1</td>
+      <td class="num"><span class="dim">0</span></td>
+      <td class="num">1</td>
+      <td class="num">1</td>
+      <td><div class="bar"><span style="width:0.0%"></span></div></td>
+    </tr>
+<tr class="">
+      <td><code>cid_malformed</code></td>
+      <td>encoding</td>
+      <td class="num">1</td>
+      <td class="num"><span class="dim">0</span></td>
+      <td class="num">1</td>
+      <td class="num">1</td>
+      <td><div class="bar"><span style="width:0.0%"></span></div></td>
+    </tr></tbody>
+</table>
+
+<h2>3 · Accounts</h2>
+<h3>Most findings</h3>
+<table>
+  <thead><tr><th>did</th><th>handle</th><th class="num">findings</th><th class="num">breaking</th><th class="num">records</th><th class="num">collections</th><th>top kinds</th></tr></thead>
+  <tbody><tr>
+      <td><a class="mono" href="https://pds.ls/did:plc:jysp4xee55hthx3m2yw7kqkg" target="_blank" rel="noreferrer">did:plc:jysp4xee55hthx3m2yw7kqkg</a></td>
+      <td><strong>pvalencia.bsky.social</strong></td>
+      <td class="num">3,683,310</td>
+      <td class="num"><span class="dim">0</span></td>
+      <td class="num">45,430</td>
+      <td class="num">2</td>
+      <td class="mono dim">float64_fraction</td>
+    </tr>
+<tr>
+      <td><a class="mono" href="https://pds.ls/did:plc:dwecjm5n7fyljcjk3vi7x5oa" target="_blank" rel="noreferrer">did:plc:dwecjm5n7fyljcjk3vi7x5oa</a></td>
+      <td><strong>gigowat.bsky.social</strong></td>
+      <td class="num">82,416</td>
+      <td class="num"><span class="dim">0</span></td>
+      <td class="num">82,416</td>
+      <td class="num">1</td>
+      <td class="mono dim">blob_legacy</td>
+    </tr>
+<tr>
+      <td><a class="mono" href="https://pds.ls/did:plc:jbnriginiqitcc4h5cngn3qy" target="_blank" rel="noreferrer">did:plc:jbnriginiqitcc4h5cngn3qy</a></td>
+      <td><strong>flipso.com</strong></td>
+      <td class="num">61,624</td>
+      <td class="num"><span class="dim">0</span></td>
+      <td class="num">61,624</td>
+      <td class="num">1</td>
+      <td class="mono dim">blob_legacy</td>
+    </tr>
+<tr>
+      <td><a class="mono" href="https://pds.ls/did:plc:ntvl5lg2aubzxsvqwehn3biz" target="_blank" rel="noreferrer">did:plc:ntvl5lg2aubzxsvqwehn3biz</a></td>
+      <td><strong>ofertas.jbox.com.br</strong></td>
+      <td class="num">33,011</td>
+      <td class="num"><span class="dim">0</span></td>
+      <td class="num">33,011</td>
+      <td class="num">1</td>
+      <td class="mono dim">blob_legacy</td>
+    </tr>
+<tr>
+      <td><a class="mono" href="https://pds.ls/did:plc:2bgzqykay2eopblerxmsr66l" target="_blank" rel="noreferrer">did:plc:2bgzqykay2eopblerxmsr66l</a></td>
+      <td><strong>migueldiscart.bsky.social</strong></td>
+      <td class="num">27,119</td>
+      <td class="num"><span class="dim">0</span></td>
+      <td class="num">27,119</td>
+      <td class="num">1</td>
+      <td class="mono dim">blob_malformed</td>
+    </tr>
+<tr>
+      <td><a class="mono" href="https://pds.ls/did:plc:bcgltzqazw5tb6k2g3ttenbj" target="_blank" rel="noreferrer">did:plc:bcgltzqazw5tb6k2g3ttenbj</a></td>
+      <td><strong>chadtmiller.com</strong></td>
+      <td class="num">14,937</td>
+      <td class="num"><span class="dim">0</span></td>
+      <td class="num">3,377</td>
+      <td class="num">19</td>
+      <td class="mono dim">dollar_key, blob_malformed</td>
+    </tr>
+<tr>
+      <td><a class="mono" href="https://pds.ls/did:plc:gxye6si6cedipprowbl7xjex" target="_blank" rel="noreferrer">did:plc:gxye6si6cedipprowbl7xjex</a></td>
+      <td><strong>kothscreens.bsky.social</strong></td>
+      <td class="num">10,623</td>
+      <td class="num"><span class="dim">0</span></td>
+      <td class="num">10,623</td>
+      <td class="num">1</td>
+      <td class="mono dim">blob_legacy</td>
+    </tr>
+<tr>
+      <td><a class="mono" href="https://pds.ls/did:plc:34yvx4hv64znmh2i2fezoyqx" target="_blank" rel="noreferrer">did:plc:34yvx4hv64znmh2i2fezoyqx</a></td>
+      <td><strong>bomberstudios.com</strong></td>
+      <td class="num">9,216</td>
+      <td class="num"><span class="dim">0</span></td>
+      <td class="num">97</td>
+      <td class="num">2</td>
+      <td class="mono dim">dollar_key</td>
+    </tr>
+<tr>
+      <td><a class="mono" href="https://pds.ls/did:plc:xplfowvb5fkrduzpw4s6fsrv" target="_blank" rel="noreferrer">did:plc:xplfowvb5fkrduzpw4s6fsrv</a></td>
+      <td><strong>avesbrasil.bsky.social</strong></td>
+      <td class="num">8,385</td>
+      <td class="num"><span class="dim">0</span></td>
+      <td class="num">8,385</td>
+      <td class="num">1</td>
+      <td class="mono dim">blob_legacy</td>
+    </tr>
+<tr>
+      <td><a class="mono" href="https://pds.ls/did:plc:42nygfl4lwieikb6xaqmxzlg" target="_blank" rel="noreferrer">did:plc:42nygfl4lwieikb6xaqmxzlg</a></td>
+      <td><strong>benborges.xyz</strong></td>
+      <td class="num">7,159</td>
+      <td class="num"><span class="dim">0</span></td>
+      <td class="num">5,872</td>
+      <td class="num">1</td>
+      <td class="mono dim">blob_legacy</td>
+    </tr>
+<tr>
+      <td><a class="mono" href="https://pds.ls/did:plc:trkj3cdvdn6hl36bv4yof5mk" target="_blank" rel="noreferrer">did:plc:trkj3cdvdn6hl36bv4yof5mk</a></td>
+      <td><strong>grapenutsrobot.graphics</strong></td>
+      <td class="num">6,166</td>
+      <td class="num"><span class="dim">0</span></td>
+      <td class="num">6,166</td>
+      <td class="num">1</td>
+      <td class="mono dim">blob_legacy</td>
+    </tr>
+<tr>
+      <td><a class="mono" href="https://pds.ls/did:plc:iwl32vekohccji6khfdt3clw" target="_blank" rel="noreferrer">did:plc:iwl32vekohccji6khfdt3clw</a></td>
+      <td><strong>art.feediverse.org</strong></td>
+      <td class="num">6,052</td>
+      <td class="num"><span class="dim">0</span></td>
+      <td class="num">6,052</td>
+      <td class="num">1</td>
+      <td class="mono dim">blob_legacy</td>
+    </tr>
+<tr>
+      <td><a class="mono" href="https://pds.ls/did:plc:a3bytqa2zaerm5c5tg3ja4tc" target="_blank" rel="noreferrer">did:plc:a3bytqa2zaerm5c5tg3ja4tc</a></td>
+      <td><strong>tugate.ch</strong></td>
+      <td class="num">5,645</td>
+      <td class="num"><span class="dim">0</span></td>
+      <td class="num">4,427</td>
+      <td class="num">1</td>
+      <td class="mono dim">blob_legacy</td>
+    </tr>
+<tr>
+      <td><a class="mono" href="https://pds.ls/did:plc:sr3zpwfcfrjajuvbpdtr64xi" target="_blank" rel="noreferrer">did:plc:sr3zpwfcfrjajuvbpdtr64xi</a></td>
+      <td><strong>agendas.newtoncivic.org</strong></td>
+      <td class="num">5,404</td>
+      <td class="num"><span class="dim">0</span></td>
+      <td class="num">5,404</td>
+      <td class="num">1</td>
+      <td class="mono dim">float64_fraction</td>
+    </tr>
+<tr>
+      <td><a class="mono" href="https://pds.ls/did:plc:ejh2v3z5ieqhqgz3ybk6r35x" target="_blank" rel="noreferrer">did:plc:ejh2v3z5ieqhqgz3ybk6r35x</a></td>
+      <td><strong>ci.knotless.dev</strong></td>
+      <td class="num">4,932</td>
+      <td class="num"><span class="dim">0</span></td>
+      <td class="num">2,026</td>
+      <td class="num">1</td>
+      <td class="mono dim">blob_malformed, dollar_key</td>
+    </tr>
+<tr>
+      <td><a class="mono" href="https://pds.ls/did:plc:2b33wsregwr5laxshti2w34a" target="_blank" rel="noreferrer">did:plc:2b33wsregwr5laxshti2w34a</a></td>
+      <td><strong>skiweather.bsky.social</strong></td>
+      <td class="num">4,898</td>
+      <td class="num"><span class="dim">0</span></td>
+      <td class="num">4,898</td>
+      <td class="num">1</td>
+      <td class="mono dim">dollar_key</td>
+    </tr>
+<tr>
+      <td><a class="mono" href="https://pds.ls/did:plc:55xfo7x4cd55h3gubsufzfup" target="_blank" rel="noreferrer">did:plc:55xfo7x4cd55h3gubsufzfup</a></td>
+      <td><strong>nba-mirror.bsky.social</strong></td>
+      <td class="num">4,648</td>
+      <td class="num"><span class="dim">0</span></td>
+      <td class="num">4,648</td>
+      <td class="num">1</td>
+      <td class="mono dim">type_empty</td>
+    </tr>
+<tr>
+      <td><a class="mono" href="https://pds.ls/did:plc:ahtllgth7m6pg5fjqa7drbx3" target="_blank" rel="noreferrer">did:plc:ahtllgth7m6pg5fjqa7drbx3</a></td>
+      <td><strong>blatball.club</strong></td>
+      <td class="num">4,205</td>
+      <td class="num"><span class="dim">0</span></td>
+      <td class="num">246</td>
+      <td class="num">2</td>
+      <td class="mono dim">float64_fraction</td>
+    </tr>
+<tr>
+      <td><a class="mono" href="https://pds.ls/did:plc:x55ovmezouimf3gqxdjgn3k4" target="_blank" rel="noreferrer">did:plc:x55ovmezouimf3gqxdjgn3k4</a></td>
+      <td><strong>livro.bsky.social</strong></td>
+      <td class="num">4,144</td>
+      <td class="num"><span class="dim">0</span></td>
+      <td class="num">4,144</td>
+      <td class="num">1</td>
+      <td class="mono dim">blob_legacy</td>
+    </tr>
+<tr>
+      <td><a class="mono" href="https://pds.ls/did:plc:f4envarzcm5ltrrrsh24n5us" target="_blank" rel="noreferrer">did:plc:f4envarzcm5ltrrrsh24n5us</a></td>
+      <td><strong>autsport-com.bsky.social</strong></td>
+      <td class="num">3,666</td>
+      <td class="num"><span class="dim">0</span></td>
+      <td class="num">3,666</td>
+      <td class="num">1</td>
+      <td class="mono dim">blob_legacy</td>
+    </tr></tbody>
+</table>
+
+<h3>Accounts with proposal-breaking records</h3>
+<table>
+  <thead><tr><th>did</th><th>handle</th><th class="num">findings</th><th class="num">records</th><th>collections</th></tr></thead>
+  <tbody><tr>
+      <td><a class="mono" href="https://pds.ls/did:plc:djthigtyew7fmuzjgmakdsk5" target="_blank" rel="noreferrer">did:plc:djthigtyew7fmuzjgmakdsk5</a></td>
+      <td><strong>xwall.bsky.social</strong></td>
+      <td class="num">107</td>
+      <td class="num">58</td>
+      <td class="mono dim">com.newdin.chap, com.newdin.story, com.ruthub.entry, com.newdin.follows</td>
+    </tr>
+<tr>
+      <td><a class="mono" href="https://pds.ls/did:plc:r4j4wcqlmel2qgepj2bkvq4i" target="_blank" rel="noreferrer">did:plc:r4j4wcqlmel2qgepj2bkvq4i</a></td>
+      <td><strong>newdin.com</strong></td>
+      <td class="num">41</td>
+      <td class="num">39</td>
+      <td class="mono dim">com.newdin.chap</td>
+    </tr>
+<tr>
+      <td><a class="mono" href="https://pds.ls/did:plc:nlromb2qyyl6rszaluwhfy6j" target="_blank" rel="noreferrer">did:plc:nlromb2qyyl6rszaluwhfy6j</a></td>
+      <td><strong>dansd11.bsky.social</strong></td>
+      <td class="num">23</td>
+      <td class="num">14</td>
+      <td class="mono dim">com.newdin.chap</td>
+    </tr>
+<tr>
+      <td><a class="mono" href="https://pds.ls/did:plc:4xse7hyv5pqaskmlkvjelsq2" target="_blank" rel="noreferrer">did:plc:4xse7hyv5pqaskmlkvjelsq2</a></td>
+      <td><strong>lanausse.com</strong></td>
+      <td class="num">9</td>
+      <td class="num">1</td>
+      <td class="mono dim">dev.regnault.webfishing.save</td>
+    </tr>
+<tr>
+      <td><a class="mono" href="https://pds.ls/did:plc:vwzwgnygau7ed7b7wt5ux7y2" target="_blank" rel="noreferrer">did:plc:vwzwgnygau7ed7b7wt5ux7y2</a></td>
+      <td><strong>retr0.id</strong></td>
+      <td class="num">7</td>
+      <td class="num">7</td>
+      <td class="mono dim">app.bsky.feed.post</td>
+    </tr>
+<tr>
+      <td><a class="mono" href="https://pds.ls/did:plc:tndeaffsojahb3tzjut27gi5" target="_blank" rel="noreferrer">did:plc:tndeaffsojahb3tzjut27gi5</a></td>
+      <td><strong>hailey.pet</strong></td>
+      <td class="num">6</td>
+      <td class="num">3</td>
+      <td class="mono dim">app.bsky.feed.post</td>
+    </tr>
+<tr>
+      <td><a class="mono" href="https://pds.ls/did:plc:x37ycyikezcyzjslp6inzq5c" target="_blank" rel="noreferrer">did:plc:x37ycyikezcyzjslp6inzq5c</a></td>
+      <td><strong>winteris.moe</strong></td>
+      <td class="num">4</td>
+      <td class="num">4</td>
+      <td class="mono dim">app.rocksky.scrobble, app.rocksky.song</td>
+    </tr>
+<tr>
+      <td><a class="mono" href="https://pds.ls/did:plc:4agp2hcrps6ou4vjv7uux7dm" target="_blank" rel="noreferrer">did:plc:4agp2hcrps6ou4vjv7uux7dm</a></td>
+      <td><strong>535.bsky.social</strong></td>
+      <td class="num">3</td>
+      <td class="num">3</td>
+      <td class="mono dim">test.a.b.c.aaaaaa, app.bsky.feed.post</td>
+    </tr>
+<tr>
+      <td><a class="mono" href="https://pds.ls/did:plc:nbgogx4yfdee67wggg7hk2q3" target="_blank" rel="noreferrer">did:plc:nbgogx4yfdee67wggg7hk2q3</a></td>
+      <td><strong>richard.levitte.org</strong></td>
+      <td class="num">2</td>
+      <td class="num">1</td>
+      <td class="mono dim">com.newdin.story</td>
+    </tr>
+<tr>
+      <td><a class="mono" href="https://pds.ls/did:plc:7mnpet2pvof2llhpcwattscf" target="_blank" rel="noreferrer">did:plc:7mnpet2pvof2llhpcwattscf</a></td>
+      <td><strong>piss.beauty</strong></td>
+      <td class="num">2</td>
+      <td class="num">2</td>
+      <td class="mono dim">club.stellz.lexicon.evm.currency, club.stellz.lexicon.evm.transferIntent</td>
+    </tr>
+<tr>
+      <td><a class="mono" href="https://pds.ls/did:plc:gbajdhxk3xhjl7ubsdurrryr" target="_blank" rel="noreferrer">did:plc:gbajdhxk3xhjl7ubsdurrryr</a></td>
+      <td><strong>turtlejourneys.bsky.social</strong></td>
+      <td class="num">2</td>
+      <td class="num">1</td>
+      <td class="mono dim">app.bsky.feed.post</td>
+    </tr>
+<tr>
+      <td><a class="mono" href="https://pds.ls/did:plc:xaseqmxnxnnorjs4j2k27sls" target="_blank" rel="noreferrer">did:plc:xaseqmxnxnnorjs4j2k27sls</a></td>
+      <td><strong>newsaboutturkey.bsky.social</strong></td>
+      <td class="num">1</td>
+      <td class="num">1</td>
+      <td class="mono dim">app.bsky.feed.generator</td>
+    </tr>
+<tr>
+      <td><a class="mono" href="https://pds.ls/did:plc:ogumtca3eldve2jimbrx33er" target="_blank" rel="noreferrer">did:plc:ogumtca3eldve2jimbrx33er</a></td>
+      <td><strong>slipysliedr.bsky.social</strong></td>
+      <td class="num">1</td>
+      <td class="num">1</td>
+      <td class="mono dim">app.bsky.feed.generator</td>
+    </tr>
+<tr>
+      <td><a class="mono" href="https://pds.ls/did:plc:b6iozvav2kadefl6flp6xiin" target="_blank" rel="noreferrer">did:plc:b6iozvav2kadefl6flp6xiin</a></td>
+      <td><strong>dubzz.bsky.social</strong></td>
+      <td class="num">1</td>
+      <td class="num">1</td>
+      <td class="mono dim">dev.regnault.webfishing.save</td>
+    </tr>
+<tr>
+      <td><a class="mono" href="https://pds.ls/did:plc:b2wskpxho4srwilqyssafllz" target="_blank" rel="noreferrer">did:plc:b2wskpxho4srwilqyssafllz</a></td>
+      <td><strong>test142342.bsky.social</strong></td>
+      <td class="num">1</td>
+      <td class="num">1</td>
+      <td class="mono dim">app.bsky.feed.post</td>
+    </tr>
+<tr>
+      <td><a class="mono" href="https://pds.ls/did:plc:zcunbne3w5btaz227wfdwfml" target="_blank" rel="noreferrer">did:plc:zcunbne3w5btaz227wfdwfml</a></td>
+      <td><strong>missingkids.shop</strong></td>
+      <td class="num">1</td>
+      <td class="num">1</td>
+      <td class="mono dim">app.bsky.feed.post</td>
+    </tr>
+<tr>
+      <td><a class="mono" href="https://pds.ls/did:plc:vd3bvirbooxanq7rc4myzxym" target="_blank" rel="noreferrer">did:plc:vd3bvirbooxanq7rc4myzxym</a></td>
+      <td><strong>ruthub.com</strong></td>
+      <td class="num">1</td>
+      <td class="num">1</td>
+      <td class="mono dim">com.ruthub.entry</td>
+    </tr></tbody>
+</table>
+
+<h2>4 · Data-model issues</h2>
+
+<h3>Records with no <code>$type</code> (2,391 shown)</h3>
+<table>
+  <thead><tr><th>collection</th><th class="num">findings</th><th class="num">accounts</th><th>example</th></tr></thead>
+  <tbody><tr><td><code>space.kab.transform</code></td><td class='num'>1,540</td><td class='num'>1</td><td class='dim'><a class="mono" href="https://pds.ls/at://did:plc:pb4ykaxogrktccvcyopt52tk/space.kab.transform/p1-1769224270553" target="_blank" rel="noreferrer">at://did:plc:pb4ykaxogrktccvcyopt52tk/space.kab.transform/p1-1769224270553</a></td></tr>
+<tr><td><code>social.grain.favorite</code></td><td class='num'>482</td><td class='num'>5</td><td class='dim'><a class="mono" href="https://pds.ls/at://did:plc:irs2tcoeuvuwj3m4yampbuco/social.grain.favorite/3mjzh5zxg3b22" target="_blank" rel="noreferrer">at://did:plc:irs2tcoeuvuwj3m4yampbuco/social.grain.favorite/3mjzh5zxg3b22</a></td></tr>
+<tr><td><code>net.anisota.beta.game.log</code></td><td class='num'>58</td><td class='num'>8</td><td class='dim'><a class="mono" href="https://pds.ls/at://did:plc:3i6uzuatdyk7rwfkrybynf5j/net.anisota.beta.game.log/3m7darst5ay22" target="_blank" rel="noreferrer">at://did:plc:3i6uzuatdyk7rwfkrybynf5j/net.anisota.beta.game.log/3m7darst5ay22</a></td></tr>
+<tr><td><code>social.grain.photo</code></td><td class='num'>55</td><td class='num'>4</td><td class='dim'><a class="mono" href="https://pds.ls/at://did:plc:irs2tcoeuvuwj3m4yampbuco/social.grain.photo/3mjzhjxyn5b22" target="_blank" rel="noreferrer">at://did:plc:irs2tcoeuvuwj3m4yampbuco/social.grain.photo/3mjzhjxyn5b22</a></td></tr>
+<tr><td><code>social.grain.gallery.item</code></td><td class='num'>55</td><td class='num'>4</td><td class='dim'><a class="mono" href="https://pds.ls/at://did:plc:irs2tcoeuvuwj3m4yampbuco/social.grain.gallery.item/3mjzhkcuixx22" target="_blank" rel="noreferrer">at://did:plc:irs2tcoeuvuwj3m4yampbuco/social.grain.gallery.item/3mjzhkcuixx22</a></td></tr>
+<tr><td><code>space.kab.temporal</code></td><td class='num'>37</td><td class='num'>1</td><td class='dim'><a class="mono" href="https://pds.ls/at://did:plc:pb4ykaxogrktccvcyopt52tk/space.kab.temporal/3mcprf3c5ycm3" target="_blank" rel="noreferrer">at://did:plc:pb4ykaxogrktccvcyopt52tk/space.kab.temporal/3mcprf3c5ycm3</a></td></tr>
+<tr><td><code>space.kab.predictive</code></td><td class='num'>35</td><td class='num'>1</td><td class='dim'><a class="mono" href="https://pds.ls/at://did:plc:pb4ykaxogrktccvcyopt52tk/space.kab.predictive/3md2ytp6obsh6" target="_blank" rel="noreferrer">at://did:plc:pb4ykaxogrktccvcyopt52tk/space.kab.predictive/3md2ytp6obsh6</a></td></tr>
+<tr><td><code>social.grain.graph.follow</code></td><td class='num'>30</td><td class='num'>3</td><td class='dim'><a class="mono" href="https://pds.ls/at://did:plc:tztzxg26o2rdzyceoejkupnw/social.grain.graph.follow/3n23p2zpgbz22" target="_blank" rel="noreferrer">at://did:plc:tztzxg26o2rdzyceoejkupnw/social.grain.graph.follow/3n23p2zpgbz22</a></td></tr>
+<tr><td><code>social.grain.gallery</code></td><td class='num'>27</td><td class='num'>4</td><td class='dim'><a class="mono" href="https://pds.ls/at://did:plc:irs2tcoeuvuwj3m4yampbuco/social.grain.gallery/3mjzhkc6czm22" target="_blank" rel="noreferrer">at://did:plc:irs2tcoeuvuwj3m4yampbuco/social.grain.gallery/3mjzhkc6czm22</a></td></tr>
+<tr><td><code>net.anisota.beta.game.session</code></td><td class='num'>24</td><td class='num'>8</td><td class='dim'><a class="mono" href="https://pds.ls/at://did:plc:3i6uzuatdyk7rwfkrybynf5j/net.anisota.beta.game.session/3m7darsllrm22" target="_blank" rel="noreferrer">at://did:plc:3i6uzuatdyk7rwfkrybynf5j/net.anisota.beta.game.session/3m7darsllrm22</a></td></tr>
+<tr><td><code>app.blento.card</code></td><td class='num'>24</td><td class='num'>3</td><td class='dim'><a class="mono" href="https://pds.ls/at://did:plc:irs2tcoeuvuwj3m4yampbuco/app.blento.card/3mdszunx3lsap" target="_blank" rel="noreferrer">at://did:plc:irs2tcoeuvuwj3m4yampbuco/app.blento.card/3mdszunx3lsap</a></td></tr>
+<tr><td><code>social.grain.photo.exif</code></td><td class='num'>24</td><td class='num'>3</td><td class='dim'><a class="mono" href="https://pds.ls/at://did:plc:irs2tcoeuvuwj3m4yampbuco/social.grain.photo.exif/3mjzhjyr3fc22" target="_blank" rel="noreferrer">at://did:plc:irs2tcoeuvuwj3m4yampbuco/social.grain.photo.exif/3mjzhjyr3fc22</a></td></tr></tbody>
+</table>
+
+<h3><code>$type</code> that disagrees with the collection</h3>
+<table>
+  <thead><tr><th>stored under</th><th>declares</th><th class="num">findings</th><th class="num">accounts</th></tr></thead>
+  <tbody><tr><td><code>blue.badge.collection</code></td><td class='mono'>blue.badge.award</td><td class='num'>965</td><td class='num'>167</td></tr>
+<tr><td><code>xyz.statusphere.status</code></td><td class='mono'>xyz.statusphere.status_test</td><td class='num'>269</td><td class='num'>1</td></tr>
+<tr><td><code>org.ziglang.release</code></td><td class='mono'>blob</td><td class='num'>262</td><td class='num'>1</td></tr>
+<tr><td><code>net.dracoblue.poing</code></td><td class='mono'>net.dracoblue.poing.ping</td><td class='num'>34</td><td class='num'>1</td></tr>
+<tr><td><code>net.dracoblue.poing</code></td><td class='mono'>net.dracoblue.poing.pong</td><td class='num'>13</td><td class='num'>1</td></tr>
+<tr><td><code>events.smokesignal.RSVP</code></td><td class='mono'>events.smokesignal.RSVP#v1</td><td class='num'>13</td><td class='num'>10</td></tr>
+<tr><td><code>events.smokesignal.Profile</code></td><td class='mono'>events.smokesignal.Profile#v1</td><td class='num'>8</td><td class='num'>8</td></tr>
+<tr><td><code>dev.bai.bsky.listitem</code></td><td class='mono'>dev.bai.bsky.list#listitem</td><td class='num'>7</td><td class='num'>1</td></tr>
+<tr><td><code>blue.moji.collection</code></td><td class='mono'>blue.moji.collection.item</td><td class='num'>6</td><td class='num'>4</td></tr>
+<tr><td><code>xyz.imaginarymachines.shinyrock.trade</code></td><td class='mono'>xyz.imaginarymachines.shinyrock</td><td class='num'>5</td><td class='num'>1</td></tr>
+<tr><td><code>moe.hayden.prints.blueprint</code></td><td class='mono'>moe.hayden.prints.blueprint#main</td><td class='num'>5</td><td class='num'>1</td></tr>
+<tr><td><code>events.smokesignal.Event</code></td><td class='mono'>events.smokesignal.Event#v1</td><td class='num'>4</td><td class='num'>4</td></tr></tbody>
+</table>
+
+<h3>Reserved <code>$</code>-prefixed keys</h3>
+<p>Other than <code>$type</code>, these collide with the JSON sentinels (<code>$link</code>,
+<code>$bytes</code>) or are simply unexpected. Most are application fields like <code>$schema</code> and
+<code>$via</code>.</p>
+<table>
+  <thead><tr><th>key</th><th>collection</th><th class="num">findings</th><th>example path</th></tr></thead>
+  <tbody><tr><td><code>$link</code></td><td><code>dev.knotless.check</code></td><td class='num'>7,943</td><td class='path dim'>log.ref.$link</td></tr>
+<tr><td><code>$value</code></td><td><code>org.designtxt.tokenCollection</code></td><td class='num'>7,296</td><td class='path dim'>accordion-disclosure-indicator-to-text.$value</td></tr>
+<tr><td><code>$type.1</code></td><td><code>app.bsky.feed.post</code></td><td class='num'>6,043</td><td class='path dim'>embed.$type.1</td></tr>
+<tr><td><code>$via</code></td><td><code>app.bsky.feed.post</code></td><td class='num'>4,708</td><td class='path dim'>$via</td></tr>
+<tr><td><code>$schema</code></td><td><code>dev.cocore.compute.job</code></td><td class='num'>2,096</td><td class='path dim'>tools[].function.parameters.$schema</td></tr>
+<tr><td><code>$link</code></td><td><code>dev.knotless.release</code></td><td class='num'>1,666</td><td class='path dim'>files[].parts[].blob.ref.$link</td></tr>
+<tr><td><code>$extensions</code></td><td><code>org.designtxt.tokenCollection</code></td><td class='num'>1,554</td><td class='path dim'>base.color.black.$extensions</td></tr>
+<tr><td><code>$link</code></td><td><code>app.bsky.feed.post</code></td><td class='num'>993</td><td class='path dim'>media.images[].image.ref.$link</td></tr>
+<tr><td><code>$link</code></td><td><code>fyi.opensocial.templateVersion</code></td><td class='num'>918</td><td class='path dim'>files[].file.ref.$link</td></tr>
+<tr><td><code>$link</code></td><td><code>dev.pdsjs.git.check</code></td><td class='num'>746</td><td class='path dim'>logs.ref.$link</td></tr>
+<tr><td><code>$schema</code></td><td><code>com.fedproxy.rbac</code></td><td class='num'>624</td><td class='path dim'>policies.ex-5svqtrhheairglgiiyvutzik-smdy3mgg5x3eeohxxsvwgnxn-compute-16905772.schemas./v1/oidc/issue.$schema</td></tr>
+<tr><td><code>$schema</code></td><td><code>eco.astrosky.transient.gcn</code></td><td class='num'>452</td><td class='path dim'>data.$schema</td></tr></tbody>
+</table>
+
+<h3>Malformed blobs</h3>
+<table>
+  <thead><tr><th>path</th><th class="num">findings</th><th class="num">accounts</th><th>problem</th></tr></thead>
+  <tbody><tr><td class='path'>embed.images[].image</td><td class='num'>27,315</td><td class='num'>32</td><td>size is missing or not a non-negative integer</td></tr>
+<tr><td class='path'>log</td><td class='num'>5,895</td><td class='num'>3</td><td>ref is missing or not a link</td></tr>
+<tr><td class='path'>outputs[].image</td><td class='num'>2,048</td><td class='num'>3</td><td>ref is missing or not a link</td></tr>
+<tr><td class='path'>files[].parts[].blob</td><td class='num'>1,669</td><td class='num'>1</td><td>ref is missing or not a link</td></tr>
+<tr><td class='path'>files[].file</td><td class='num'>918</td><td class='num'>1</td><td>ref is missing or not a link</td></tr>
+<tr><td class='path'>logs</td><td class='num'>746</td><td class='num'>2</td><td>ref is missing or not a link</td></tr>
+<tr><td class='path'>embed.external.thumb</td><td class='num'>565</td><td class='num'>43</td><td>ref is missing or not a link</td></tr>
+<tr><td class='path'>embed.thumb</td><td class='num'>468</td><td class='num'>2</td><td>mimeType is missing, empty or not a string</td></tr>
+<tr><td class='path'>photo</td><td class='num'>292</td><td class='num'>3</td><td>ref is missing or not a link</td></tr>
+<tr><td class='path'>attachments[].image</td><td class='num'>182</td><td class='num'>1</td><td>ref is missing or not a link</td></tr></tbody>
+</table>
+
+<h3>Legacy blobs (<code>cid</code> instead of <code>ref</code>)</h3>
+<table>
+  <thead><tr><th>collection</th><th class="num">findings</th><th class="num">accounts</th><th>witnessed</th></tr></thead>
+  <tbody><tr><td><code>app.bsky.feed.post</code></td><td class='num'>327,991</td><td class='num'>4,137</td><td class='mono dim'>2026-07-28 → 2026-08-04</td></tr>
+<tr><td><code>app.bsky.actor.profile</code></td><td class='num'>453</td><td class='num'>297</td><td class='mono dim'>2026-07-28 → 2026-08-03</td></tr></tbody>
+</table>
+
+<h2>5 · Serialization oddities</h2>
+<p>These are rare enough to attribute almost entirely to one conformance-test account.</p>
+<table>
+  <thead><tr><th>did</th><th>handle</th><th class="num">findings</th><th>kinds</th></tr></thead>
+  <tbody><tr><td><a class="mono" href="https://pds.ls/did:plc:s3m33wvdsixxr2ifnkldlfp3d" target="_blank" rel="noreferrer">did:plc:s3m33wvdsixxr2ifnkldlfp3d</a></td><td><strong>-</strong></td><td class='num'>31</td><td class='mono dim'>invalid_utf8</td></tr>
+<tr><td><a class="mono" href="https://pds.ls/did:plc:65r3dy2t6xfuwidxmzvctvsh" target="_blank" rel="noreferrer">did:plc:65r3dy2t6xfuwidxmzvctvsh</a></td><td><strong>-</strong></td><td class='num'>15</td><td class='mono dim'>invalid_utf8, cid_malformed</td></tr>
+<tr><td><a class="mono" href="https://pds.ls/did:plc:r3uyey5ys7u33f4gepc4we7i" target="_blank" rel="noreferrer">did:plc:r3uyey5ys7u33f4gepc4we7i</a></td><td><strong>-</strong></td><td class='num'>15</td><td class='mono dim'>invalid_utf8</td></tr>
+<tr><td><a class="mono" href="https://pds.ls/did:plc:vwzwgnygau7ed7b7wt5ux7y2" target="_blank" rel="noreferrer">did:plc:vwzwgnygau7ed7b7wt5ux7y2</a></td><td><strong>retr0.id</strong></td><td class='num'>14</td><td class='mono dim'>malformed, invalid_utf8</td></tr>
+<tr><td><a class="mono" href="https://pds.ls/did:plc:4fzofkhhlbiodiuosseu3bja" target="_blank" rel="noreferrer">did:plc:4fzofkhhlbiodiuosseu3bja</a></td><td><strong>-</strong></td><td class='num'>13</td><td class='mono dim'>invalid_utf8</td></tr>
+<tr><td><a class="mono" href="https://pds.ls/did:plc:4agp2hcrps6ou4vjv7uux7dm" target="_blank" rel="noreferrer">did:plc:4agp2hcrps6ou4vjv7uux7dm</a></td><td><strong>535.bsky.social</strong></td><td class='num'>11</td><td class='mono dim'>malformed</td></tr>
+<tr><td><a class="mono" href="https://pds.ls/did:plc:eayps5647civfaexwfflzhuq" target="_blank" rel="noreferrer">did:plc:eayps5647civfaexwfflzhuq</a></td><td><strong>-</strong></td><td class='num'>9</td><td class='mono dim'>invalid_utf8, key_duplicate</td></tr>
+<tr><td><a class="mono" href="https://pds.ls/did:plc:eyirpfrgthkr4n2nl6j2msj2" target="_blank" rel="noreferrer">did:plc:eyirpfrgthkr4n2nl6j2msj2</a></td><td><strong>-</strong></td><td class='num'>7</td><td class='mono dim'>invalid_utf8</td></tr></tbody>
+</table>
+<p class="sub">It writes records in <code>com.example.*</code> collections containing a CIDv0 link, a
+bare byte-string record, a bare array record, roughly 1000-deep nested arrays, invalid UTF-8, and
+<code>$type</code> mismatches. If you are looking for organic serialization bugs, this corpus is
+otherwise very clean: 299 encoding findings total,
+and none of them affect ordinary application data.</p>
+
+<h2>6 · Method and caveats</h2>
+<ul>
+  <li><strong>Source.</strong> Every sealed Jetstream v2 archive segment, 6.35T of
+  record bytes, replayed through the archive API. Segment payloads are the raw record blocks from the
+  repo CAR — not JSON re-encodings — so float widths, key order and head encodings are exactly what
+  clients wrote.</li>
+  <li><strong>Checker.</strong> A hand-written DRISL walker (<code>internal/drisl</code>) that reports
+  every violation in a record rather than stopping at the first, cross-checked against atmos's strict
+  DAG-CBOR decoder on 5.8M records (zero disagreements) and fuzzed with 2.5M random inputs.</li>
+  <li><strong>Counts are exact.</strong> Findings are keyed by (record version, path) and de-duplicated
+  on read, so a crash-restart rescan does not inflate them. Scanned-record totals are approximate.</li>
+  <li><strong>Coverage.</strong> Deleted records are absent (the archive only holds what exists), and
+  records that were never committed to the firehose do not appear. The audit ran to the sealed tip on
+  2026-11-12 23:24 UTC.</li>
+  <li><strong>Severity.</strong> Only <code>float64_integral</code>, <code>float16</code>,
+  <code>float32</code>, <code>neg_zero</code> and <code>nonfinite</code> conflict with the proposal as
+  written. Everything else here violates the current data model and would still need fixing.</li>
+</ul>
+
+<h2>Appendix · the 212 proposal-breaking findings</h2>
+<input id="filter" placeholder="filter by collection, path, value…">
+<table id="appendix">
+  <thead><tr><th>uri</th><th>path</th><th class="num">value</th><th>note</th></tr></thead>
+  <tbody><tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:ogumtca3eldve2jimbrx33er/app.bsky.feed.generator/aaahfcrzzxi36" target="_blank" rel="noreferrer">at://did:plc:ogumtca3eldve2jimbrx33er/app.bsky.feed.generator/aaahfcrzzxi36</a></td>
+      <td class="path">skyfeedBuilder.blocks[0].firehoseSeconds</td>
+      <td class="num mono">1e+29</td>
+      <td class="dim">beyond int64</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:xaseqmxnxnnorjs4j2k27sls/app.bsky.feed.generator/aaapicwecx6ie" target="_blank" rel="noreferrer">at://did:plc:xaseqmxnxnnorjs4j2k27sls/app.bsky.feed.generator/aaapicwecx6ie</a></td>
+      <td class="path">skyfeedBuilder.blocks[2].count</td>
+      <td class="num mono">10000000000000000.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:4agp2hcrps6ou4vjv7uux7dm/app.bsky.feed.post/3ksqvbrcf7npc" target="_blank" rel="noreferrer">at://did:plc:4agp2hcrps6ou4vjv7uux7dm/app.bsky.feed.post/3ksqvbrcf7npc</a></td>
+      <td class="path"></td>
+      <td class="num mono">73786976294838210000.0</td>
+      <td class="dim">beyond int64</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:b2wskpxho4srwilqyssafllz/app.bsky.feed.post/3jvaurvtlfa2c" target="_blank" rel="noreferrer">at://did:plc:b2wskpxho4srwilqyssafllz/app.bsky.feed.post/3jvaurvtlfa2c</a></td>
+      <td class="path">big_negative_number</td>
+      <td class="num mono">-18446744073709552000.0</td>
+      <td class="dim">beyond int64</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:gbajdhxk3xhjl7ubsdurrryr/app.bsky.feed.post/3ldwvcxub752w" target="_blank" rel="noreferrer">at://did:plc:gbajdhxk3xhjl7ubsdurrryr/app.bsky.feed.post/3ldwvcxub752w</a></td>
+      <td class="path">embed.images[0].aspectRatio.height</td>
+      <td class="num mono">8.321803461041391e+196</td>
+      <td class="dim">beyond int64</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:gbajdhxk3xhjl7ubsdurrryr/app.bsky.feed.post/3ldwvcxub752w" target="_blank" rel="noreferrer">at://did:plc:gbajdhxk3xhjl7ubsdurrryr/app.bsky.feed.post/3ldwvcxub752w</a></td>
+      <td class="path">embed.images[0].aspectRatio.width</td>
+      <td class="num mono">1.6325050103102127e+194</td>
+      <td class="dim">beyond int64</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:tndeaffsojahb3tzjut27gi5/app.bsky.feed.post/3lldszcnc7c2h" target="_blank" rel="noreferrer">at://did:plc:tndeaffsojahb3tzjut27gi5/app.bsky.feed.post/3lldszcnc7c2h</a></td>
+      <td class="path">facets[0].index.byteEnd</td>
+      <td class="num mono">8.0</td>
+      <td class="dim"></td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:tndeaffsojahb3tzjut27gi5/app.bsky.feed.post/3lldszcnc7c2h" target="_blank" rel="noreferrer">at://did:plc:tndeaffsojahb3tzjut27gi5/app.bsky.feed.post/3lldszcnc7c2h</a></td>
+      <td class="path">facets[0].index.byteStart</td>
+      <td class="num mono">0.0</td>
+      <td class="dim"></td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:tndeaffsojahb3tzjut27gi5/app.bsky.feed.post/3lmsmrveyqc2r" target="_blank" rel="noreferrer">at://did:plc:tndeaffsojahb3tzjut27gi5/app.bsky.feed.post/3lmsmrveyqc2r</a></td>
+      <td class="path">facets[0].index.byteEnd</td>
+      <td class="num mono">26.0</td>
+      <td class="dim"></td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:tndeaffsojahb3tzjut27gi5/app.bsky.feed.post/3lmsmrveyqc2r" target="_blank" rel="noreferrer">at://did:plc:tndeaffsojahb3tzjut27gi5/app.bsky.feed.post/3lmsmrveyqc2r</a></td>
+      <td class="path">facets[0].index.byteStart</td>
+      <td class="num mono">18.0</td>
+      <td class="dim"></td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:tndeaffsojahb3tzjut27gi5/app.bsky.feed.post/3lmxy36ojh22v" target="_blank" rel="noreferrer">at://did:plc:tndeaffsojahb3tzjut27gi5/app.bsky.feed.post/3lmxy36ojh22v</a></td>
+      <td class="path">facets[0].index.byteEnd</td>
+      <td class="num mono">28.0</td>
+      <td class="dim"></td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:tndeaffsojahb3tzjut27gi5/app.bsky.feed.post/3lmxy36ojh22v" target="_blank" rel="noreferrer">at://did:plc:tndeaffsojahb3tzjut27gi5/app.bsky.feed.post/3lmxy36ojh22v</a></td>
+      <td class="path">facets[0].index.byteStart</td>
+      <td class="num mono">14.0</td>
+      <td class="dim"></td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:vwzwgnygau7ed7b7wt5ux7y2/app.bsky.feed.post/3ke4tqi42v22e" target="_blank" rel="noreferrer">at://did:plc:vwzwgnygau7ed7b7wt5ux7y2/app.bsky.feed.post/3ke4tqi42v22e</a></td>
+      <td class="path">long</td>
+      <td class="num mono">1e+25</td>
+      <td class="dim">beyond int64</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:vwzwgnygau7ed7b7wt5ux7y2/app.bsky.feed.post/3ke4trxamd422" target="_blank" rel="noreferrer">at://did:plc:vwzwgnygau7ed7b7wt5ux7y2/app.bsky.feed.post/3ke4trxamd422</a></td>
+      <td class="path">long</td>
+      <td class="num mono">1e+25</td>
+      <td class="dim">beyond int64</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:vwzwgnygau7ed7b7wt5ux7y2/app.bsky.feed.post/3ke4twq3utc2j" target="_blank" rel="noreferrer">at://did:plc:vwzwgnygau7ed7b7wt5ux7y2/app.bsky.feed.post/3ke4twq3utc2j</a></td>
+      <td class="path">long</td>
+      <td class="num mono">1e+25</td>
+      <td class="dim">beyond int64</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:vwzwgnygau7ed7b7wt5ux7y2/app.bsky.feed.post/3ke4u4w36d423" target="_blank" rel="noreferrer">at://did:plc:vwzwgnygau7ed7b7wt5ux7y2/app.bsky.feed.post/3ke4u4w36d423</a></td>
+      <td class="path">long</td>
+      <td class="num mono">1e+25</td>
+      <td class="dim">beyond int64</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:vwzwgnygau7ed7b7wt5ux7y2/app.bsky.feed.post/3ke4u5ovgdk2g" target="_blank" rel="noreferrer">at://did:plc:vwzwgnygau7ed7b7wt5ux7y2/app.bsky.feed.post/3ke4u5ovgdk2g</a></td>
+      <td class="path">long</td>
+      <td class="num mono">1e+25</td>
+      <td class="dim">beyond int64</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:vwzwgnygau7ed7b7wt5ux7y2/app.bsky.feed.post/3ke4u6kzj322p" target="_blank" rel="noreferrer">at://did:plc:vwzwgnygau7ed7b7wt5ux7y2/app.bsky.feed.post/3ke4u6kzj322p</a></td>
+      <td class="path">long</td>
+      <td class="num mono">1e+25</td>
+      <td class="dim">beyond int64</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:vwzwgnygau7ed7b7wt5ux7y2/app.bsky.feed.post/3ke4ug76ip32f" target="_blank" rel="noreferrer">at://did:plc:vwzwgnygau7ed7b7wt5ux7y2/app.bsky.feed.post/3ke4ug76ip32f</a></td>
+      <td class="path">long</td>
+      <td class="num mono">1e+25</td>
+      <td class="dim">beyond int64</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:zcunbne3w5btaz227wfdwfml/app.bsky.feed.post/3l2zyurgci32n" target="_blank" rel="noreferrer">at://did:plc:zcunbne3w5btaz227wfdwfml/app.bsky.feed.post/3l2zyurgci32n</a></td>
+      <td class="path">facets[0].index.byteEnd</td>
+      <td class="num mono">10000000000000000.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:x37ycyikezcyzjslp6inzq5c/app.rocksky.scrobble/3myg55luh2epe" target="_blank" rel="noreferrer">at://did:plc:x37ycyikezcyzjslp6inzq5c/app.rocksky.scrobble/3myg55luh2epe</a></td>
+      <td class="path">duration</td>
+      <td class="num mono">130510.0</td>
+      <td class="dim"></td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:x37ycyikezcyzjslp6inzq5c/app.rocksky.scrobble/3mzdykwt2p6nf" target="_blank" rel="noreferrer">at://did:plc:x37ycyikezcyzjslp6inzq5c/app.rocksky.scrobble/3mzdykwt2p6nf</a></td>
+      <td class="path">duration</td>
+      <td class="num mono">130140.0</td>
+      <td class="dim"></td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:x37ycyikezcyzjslp6inzq5c/app.rocksky.song/3myg55ls4l77f" target="_blank" rel="noreferrer">at://did:plc:x37ycyikezcyzjslp6inzq5c/app.rocksky.song/3myg55ls4l77f</a></td>
+      <td class="path">duration</td>
+      <td class="num mono">130510.0</td>
+      <td class="dim"></td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:x37ycyikezcyzjslp6inzq5c/app.rocksky.song/3mzdykwqpwohk" target="_blank" rel="noreferrer">at://did:plc:x37ycyikezcyzjslp6inzq5c/app.rocksky.song/3mzdykwqpwohk</a></td>
+      <td class="path">duration</td>
+      <td class="num mono">130140.0</td>
+      <td class="dim"></td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:7mnpet2pvof2llhpcwattscf/club.stellz.lexicon.evm.currency/3lq6xqwh4wo2b" target="_blank" rel="noreferrer">at://did:plc:7mnpet2pvof2llhpcwattscf/club.stellz.lexicon.evm.currency/3lq6xqwh4wo2b</a></td>
+      <td class="path">defs.main.properties.chainId.maximum</td>
+      <td class="num mono">18446744073709552000.0</td>
+      <td class="dim">beyond int64</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:7mnpet2pvof2llhpcwattscf/club.stellz.lexicon.evm.transferIntent/3lq6xsgw43i2z" target="_blank" rel="noreferrer">at://did:plc:7mnpet2pvof2llhpcwattscf/club.stellz.lexicon.evm.transferIntent/3lq6xsgw43i2z</a></td>
+      <td class="path">defs.main.properties.amount.maximum</td>
+      <td class="num mono">3.402823669209385e+38</td>
+      <td class="dim">beyond int64</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17389740813919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17389740813919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17389740813919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17389740813919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17389740813919786</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17389733633919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17389741963919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17389741963919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17389741963919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17389741963919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17389741963919786</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17389733633919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17389746073919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17389746073919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17389746073919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17389746073919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17389746073919786</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17389733633919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17389746943919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17389746943919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17389746943919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17389746943919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17389746943919786</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17389733633919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17389747973919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17389747973919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17389747973919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17389747973919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17389747973919786</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17389733633919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17389755203919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17389755203919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17389755203919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17389755203919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17389755203919786</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17389733633919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17389830343919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17389830343919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17389830343919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17389830343919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17389830343919786</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17389828093919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17389831253919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17389831253919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17389831253919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17389831253919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17389831253919786</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17389828093919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17389831723919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17389831723919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17389831723919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17389831723919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17389831723919786</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17389828093919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17389834823919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17389834823919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17389834823919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17389834823919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17389834823919786</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17389828093919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17389837243919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17389837243919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17389837243919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17389837243919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17389837243919786</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17389828093919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17389838503919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17389838503919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17389838503919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17389838503919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17389838503919786</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17389828093919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17390394263919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17390394263919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17390394263919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17390394263919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17390394263919786</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17389828093919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393293293919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393293293919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17393293293919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393293293919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393293293919786</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17393280843919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393294423919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393294423919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17393294423919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393294423919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393294423919786</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17393280843919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393309963919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393309963919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17393309963919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393309963919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393309963919786</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17393280843919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393339443919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393339443919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17393339443919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393339443919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393339443919786</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17393280843919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393727913919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393727913919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17393727913919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393727913919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393727913919786</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17393280843919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393729273919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393729273919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17393729273919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393729273919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393729273919786</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17393280843919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393730373919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393730373919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17393730373919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393730373919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393730373919786</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17393280843919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393808373919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393808373919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17393808373919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393808373919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393808373919786</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17393280843919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393810073919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393810073919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17393810073919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393810073919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393810073919786</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17393280843919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393811013919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393811013919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17393811013919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393811013919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393811013919786</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17393280843919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393811543919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393811543919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17393811543919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393811543919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393811543919786</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17393280843919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393812103919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393812103919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17393812103919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393812103919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393812103919786</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17393280843919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393813653919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393813653919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17393813653919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393813653919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17393813653919786</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17393280843919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17394607583919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17394607583919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17394607583919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17394607583919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17394607583919786</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17389828093919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17394633313919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17394633313919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17394633313919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17394633313919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17394633313919786</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17389828093919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17394684353919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17394684353919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17394684353919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17394684353919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17394684353919786</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17389828093919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17394700753919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17394700753919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17394700753919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17394700753919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17394700753919786</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17389828093919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17394728493919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17394728493919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17394728493919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17394728493919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17394728493919786</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17389828093919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17394734263919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17394734263919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17394734263919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17394734263919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17394734263919786</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17389828093919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17394907283919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17394907283919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17394907283919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17394907283919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17394907283919786</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17389828093919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17395000293919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17395000293919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17395000293919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17395000293919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17395000293919786</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17389828093919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17395540823919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17395540823919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17395540823919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17395540823919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17395540823919786</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17389733633919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17395633663919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17395633663919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17395633663919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17395633663919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17395633663919786</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17393280843919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17396339063919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17396339063919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17396339063919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17396339063919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17396339063919786</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17393280843919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17398317363919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17398317363919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17398317363919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17398317363919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17398317363919786</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17389828093919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17398345763919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17398345763919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17398345763919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17398345763919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17398345763919786</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17398331423919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17398346623919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17398346623919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17398346623919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17398346623919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17398346623919786</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17398331423919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17398347413919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17398347413919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17398347413919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17398347413919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17398347413919786</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17398331423919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17398347743919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17398347743919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17398347743919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17398347743919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17398347743919786</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17398331423919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17398350523919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17398350523919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17398350523919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17398350523919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17398350523919786</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17398331423919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17398353613919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17398353613919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17398353613919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17398353613919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/17398353613919786</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17398331423919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/34800288083410" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/34800288083410</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17398331423919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/34803498410410" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/34803498410410</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17389828093919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/34812832567410" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/34812832567410</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17389828093919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/34815463919410" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/34815463919410</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17398331423919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/34817421950410" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/34817421950410</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17393280843919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/34865304050410" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.chap/34865304050410</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17393280843919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:nlromb2qyyl6rszaluwhfy6j/com.newdin.chap/173898336213111714" target="_blank" rel="noreferrer">at://did:plc:nlromb2qyyl6rszaluwhfy6j/com.newdin.chap/173898336213111714</a></td>
+      <td class="path">id</td>
+      <td class="num mono">173898336213111700.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:nlromb2qyyl6rszaluwhfy6j/com.newdin.chap/173898336213111714" target="_blank" rel="noreferrer">at://did:plc:nlromb2qyyl6rszaluwhfy6j/com.newdin.chap/173898336213111714</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17389828093919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:nlromb2qyyl6rszaluwhfy6j/com.newdin.chap/173898355013111714" target="_blank" rel="noreferrer">at://did:plc:nlromb2qyyl6rszaluwhfy6j/com.newdin.chap/173898355013111714</a></td>
+      <td class="path">id</td>
+      <td class="num mono">173898355013111700.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:nlromb2qyyl6rszaluwhfy6j/com.newdin.chap/173898355013111714" target="_blank" rel="noreferrer">at://did:plc:nlromb2qyyl6rszaluwhfy6j/com.newdin.chap/173898355013111714</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17389828093919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:nlromb2qyyl6rszaluwhfy6j/com.newdin.chap/173898377713111714" target="_blank" rel="noreferrer">at://did:plc:nlromb2qyyl6rszaluwhfy6j/com.newdin.chap/173898377713111714</a></td>
+      <td class="path">id</td>
+      <td class="num mono">173898377713111700.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:nlromb2qyyl6rszaluwhfy6j/com.newdin.chap/173898377713111714" target="_blank" rel="noreferrer">at://did:plc:nlromb2qyyl6rszaluwhfy6j/com.newdin.chap/173898377713111714</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17389828093919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:nlromb2qyyl6rszaluwhfy6j/com.newdin.chap/173965571713111714" target="_blank" rel="noreferrer">at://did:plc:nlromb2qyyl6rszaluwhfy6j/com.newdin.chap/173965571713111714</a></td>
+      <td class="path">id</td>
+      <td class="num mono">173965571713111700.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:nlromb2qyyl6rszaluwhfy6j/com.newdin.chap/173965571713111714" target="_blank" rel="noreferrer">at://did:plc:nlromb2qyyl6rszaluwhfy6j/com.newdin.chap/173965571713111714</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17393280843919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:nlromb2qyyl6rszaluwhfy6j/com.newdin.chap/173983492913111714" target="_blank" rel="noreferrer">at://did:plc:nlromb2qyyl6rszaluwhfy6j/com.newdin.chap/173983492913111714</a></td>
+      <td class="path">id</td>
+      <td class="num mono">173983492913111700.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:nlromb2qyyl6rszaluwhfy6j/com.newdin.chap/173983492913111714" target="_blank" rel="noreferrer">at://did:plc:nlromb2qyyl6rszaluwhfy6j/com.newdin.chap/173983492913111714</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17398331423919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:nlromb2qyyl6rszaluwhfy6j/com.newdin.chap/173983666413111714" target="_blank" rel="noreferrer">at://did:plc:nlromb2qyyl6rszaluwhfy6j/com.newdin.chap/173983666413111714</a></td>
+      <td class="path">id</td>
+      <td class="num mono">173983666413111700.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:nlromb2qyyl6rszaluwhfy6j/com.newdin.chap/173983666413111714" target="_blank" rel="noreferrer">at://did:plc:nlromb2qyyl6rszaluwhfy6j/com.newdin.chap/173983666413111714</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17398331423919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:nlromb2qyyl6rszaluwhfy6j/com.newdin.chap/173984412313111714" target="_blank" rel="noreferrer">at://did:plc:nlromb2qyyl6rszaluwhfy6j/com.newdin.chap/173984412313111714</a></td>
+      <td class="path">id</td>
+      <td class="num mono">173984412313111700.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:nlromb2qyyl6rszaluwhfy6j/com.newdin.chap/173984412313111714" target="_blank" rel="noreferrer">at://did:plc:nlromb2qyyl6rszaluwhfy6j/com.newdin.chap/173984412313111714</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17398331423919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:nlromb2qyyl6rszaluwhfy6j/com.newdin.chap/173984777713111714" target="_blank" rel="noreferrer">at://did:plc:nlromb2qyyl6rszaluwhfy6j/com.newdin.chap/173984777713111714</a></td>
+      <td class="path">id</td>
+      <td class="num mono">173984777713111700.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:nlromb2qyyl6rszaluwhfy6j/com.newdin.chap/173984777713111714" target="_blank" rel="noreferrer">at://did:plc:nlromb2qyyl6rszaluwhfy6j/com.newdin.chap/173984777713111714</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17393280843919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:nlromb2qyyl6rszaluwhfy6j/com.newdin.chap/173984913013111714" target="_blank" rel="noreferrer">at://did:plc:nlromb2qyyl6rszaluwhfy6j/com.newdin.chap/173984913013111714</a></td>
+      <td class="path">id</td>
+      <td class="num mono">173984913013111700.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:nlromb2qyyl6rszaluwhfy6j/com.newdin.chap/173984913013111714" target="_blank" rel="noreferrer">at://did:plc:nlromb2qyyl6rszaluwhfy6j/com.newdin.chap/173984913013111714</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17393280843919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:nlromb2qyyl6rszaluwhfy6j/com.newdin.chap/173989968014" target="_blank" rel="noreferrer">at://did:plc:nlromb2qyyl6rszaluwhfy6j/com.newdin.chap/173989968014</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17393280843919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:nlromb2qyyl6rszaluwhfy6j/com.newdin.chap/3483143995714" target="_blank" rel="noreferrer">at://did:plc:nlromb2qyyl6rszaluwhfy6j/com.newdin.chap/3483143995714</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17398331423919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:nlromb2qyyl6rszaluwhfy6j/com.newdin.chap/3484651688614" target="_blank" rel="noreferrer">at://did:plc:nlromb2qyyl6rszaluwhfy6j/com.newdin.chap/3484651688614</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17398226623919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:nlromb2qyyl6rszaluwhfy6j/com.newdin.chap/3485151801014" target="_blank" rel="noreferrer">at://did:plc:nlromb2qyyl6rszaluwhfy6j/com.newdin.chap/3485151801014</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17389733633919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:nlromb2qyyl6rszaluwhfy6j/com.newdin.chap/3485389323714" target="_blank" rel="noreferrer">at://did:plc:nlromb2qyyl6rszaluwhfy6j/com.newdin.chap/3485389323714</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17393280843919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/17393418401749422" target="_blank" rel="noreferrer">at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/17393418401749422</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17393418401749422.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/17393418401749422" target="_blank" rel="noreferrer">at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/17393418401749422</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17393280843919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/17395464491749422" target="_blank" rel="noreferrer">at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/17395464491749422</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17395464491749422.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/17395464491749422" target="_blank" rel="noreferrer">at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/17395464491749422</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17393280843919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/1739941982167626" target="_blank" rel="noreferrer">at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/1739941982167626</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17393280843919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/1741672746638956" target="_blank" rel="noreferrer">at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/1741672746638956</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17398331423919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3479840081418" target="_blank" rel="noreferrer">at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3479840081418</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17389733633919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3484682741553" target="_blank" rel="noreferrer">at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3484682741553</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17389733633919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3484682750784" target="_blank" rel="noreferrer">at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3484682750784</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17389733633919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3484863124945" target="_blank" rel="noreferrer">at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3484863124945</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17398331423919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3485199313462" target="_blank" rel="noreferrer">at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3485199313462</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17393280843919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3485199323870" target="_blank" rel="noreferrer">at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3485199323870</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17389733633919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3485312956671" target="_blank" rel="noreferrer">at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3485312956671</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17393280843919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3485312970432" target="_blank" rel="noreferrer">at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3485312970432</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17389733633919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3486414774731" target="_blank" rel="noreferrer">at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3486414774731</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17393280843919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3487410719372" target="_blank" rel="noreferrer">at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3487410719372</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17389828093919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3487441391815" target="_blank" rel="noreferrer">at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3487441391815</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17393280843919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3488648946659" target="_blank" rel="noreferrer">at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3488648946659</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17398331423919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3488859935657" target="_blank" rel="noreferrer">at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3488859935657</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17389828093919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3488948785334" target="_blank" rel="noreferrer">at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3488948785334</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17398331423919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3489125439672" target="_blank" rel="noreferrer">at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3489125439672</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17393280843919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3489223356544" target="_blank" rel="noreferrer">at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3489223356544</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17398331423919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3489225166939" target="_blank" rel="noreferrer">at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3489225166939</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17398331423919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3490222148341" target="_blank" rel="noreferrer">at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3490222148341</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17398331423919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3490251013723" target="_blank" rel="noreferrer">at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3490251013723</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17398331423919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3490566608081" target="_blank" rel="noreferrer">at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3490566608081</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17389733633919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3490719899165" target="_blank" rel="noreferrer">at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3490719899165</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17393280843919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3492653643140" target="_blank" rel="noreferrer">at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3492653643140</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17398331423919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3495506206137" target="_blank" rel="noreferrer">at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3495506206137</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17389828093919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3495905179576" target="_blank" rel="noreferrer">at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3495905179576</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17398331423919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3495905190935" target="_blank" rel="noreferrer">at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3495905190935</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17398331423919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3496030512330" target="_blank" rel="noreferrer">at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3496030512330</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17389828093919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3496048674345" target="_blank" rel="noreferrer">at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3496048674345</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17389733633919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3498269759668" target="_blank" rel="noreferrer">at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3498269759668</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17389828093919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3499032625949" target="_blank" rel="noreferrer">at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3499032625949</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17393280843919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3499034435212" target="_blank" rel="noreferrer">at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3499034435212</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17393280843919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3499036249322" target="_blank" rel="noreferrer">at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3499036249322</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17393280843919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3499041236555" target="_blank" rel="noreferrer">at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3499041236555</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17393280843919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3499167476416" target="_blank" rel="noreferrer">at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3499167476416</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17398331423919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3503177926433" target="_blank" rel="noreferrer">at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3503177926433</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17393280843919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3532253946478" target="_blank" rel="noreferrer">at://did:plc:r4j4wcqlmel2qgepj2bkvq4i/com.newdin.chap/3532253946478</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17389828093919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.follows/follows" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.follows/follows</a></td>
+      <td class="path">follows[0].id</td>
+      <td class="num mono">17389733633919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.story/17389734003919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.story/17389734003919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17389734003919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.story/17389734003919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.story/17389734003919786</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17389733633919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.story/17389829613919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.story/17389829613919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17389829613919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.story/17389829613919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.story/17389829613919786</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17389828093919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.story/17393292483919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.story/17393292483919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17393292483919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.story/17393292483919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.story/17393292483919786</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17393280843919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.story/17398227353919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.story/17398227353919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17398227353919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.story/17398227353919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.story/17398227353919786</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17398226623919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.story/17398331923919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.story/17398331923919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17398331923919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.story/17398331923919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.newdin.story/17398331923919786</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17398331423919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:nbgogx4yfdee67wggg7hk2q3/com.newdin.story/17391728561316146" target="_blank" rel="noreferrer">at://did:plc:nbgogx4yfdee67wggg7hk2q3/com.newdin.story/17391728561316146</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17391728561316146.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:nbgogx4yfdee67wggg7hk2q3/com.newdin.story/17391728561316146" target="_blank" rel="noreferrer">at://did:plc:nbgogx4yfdee67wggg7hk2q3/com.newdin.story/17391728561316146</a></td>
+      <td class="path">lineId</td>
+      <td class="num mono">17391726501316146.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.ruthub.entry/17392315593919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.ruthub.entry/17392315593919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17392315593919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:djthigtyew7fmuzjgmakdsk5/com.ruthub.entry/17394223153919786" target="_blank" rel="noreferrer">at://did:plc:djthigtyew7fmuzjgmakdsk5/com.ruthub.entry/17394223153919786</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17394223153919786.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:vd3bvirbooxanq7rc4myzxym/com.ruthub.entry/17401621912133120" target="_blank" rel="noreferrer">at://did:plc:vd3bvirbooxanq7rc4myzxym/com.ruthub.entry/17401621912133120</a></td>
+      <td class="path">id</td>
+      <td class="num mono">17401621912133120.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:4xse7hyv5pqaskmlkvjelsq2/dev.regnault.webfishing.save/3mbuy5wrx3h2w" target="_blank" rel="noreferrer">at://did:plc:4xse7hyv5pqaskmlkvjelsq2/dev.regnault.webfishing.save/3mbuy5wrx3h2w</a></td>
+      <td class="path">hidden_players[0]</td>
+      <td class="num mono">76561198031833390.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:4xse7hyv5pqaskmlkvjelsq2/dev.regnault.webfishing.save/3mbuy5wrx3h2w" target="_blank" rel="noreferrer">at://did:plc:4xse7hyv5pqaskmlkvjelsq2/dev.regnault.webfishing.save/3mbuy5wrx3h2w</a></td>
+      <td class="path">hidden_players[1]</td>
+      <td class="num mono">76561198840381010.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:4xse7hyv5pqaskmlkvjelsq2/dev.regnault.webfishing.save/3mbuy5wrx3h2w" target="_blank" rel="noreferrer">at://did:plc:4xse7hyv5pqaskmlkvjelsq2/dev.regnault.webfishing.save/3mbuy5wrx3h2w</a></td>
+      <td class="path">hidden_players[2]</td>
+      <td class="num mono">76561199125213740.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:4xse7hyv5pqaskmlkvjelsq2/dev.regnault.webfishing.save/3mbuy5wrx3h2w" target="_blank" rel="noreferrer">at://did:plc:4xse7hyv5pqaskmlkvjelsq2/dev.regnault.webfishing.save/3mbuy5wrx3h2w</a></td>
+      <td class="path">hidden_players[3]</td>
+      <td class="num mono">76561199155521900.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:4xse7hyv5pqaskmlkvjelsq2/dev.regnault.webfishing.save/3mbuy5wrx3h2w" target="_blank" rel="noreferrer">at://did:plc:4xse7hyv5pqaskmlkvjelsq2/dev.regnault.webfishing.save/3mbuy5wrx3h2w</a></td>
+      <td class="path">hidden_players[4]</td>
+      <td class="num mono">76561199482396540.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:4xse7hyv5pqaskmlkvjelsq2/dev.regnault.webfishing.save/3mbuy5wrx3h2w" target="_blank" rel="noreferrer">at://did:plc:4xse7hyv5pqaskmlkvjelsq2/dev.regnault.webfishing.save/3mbuy5wrx3h2w</a></td>
+      <td class="path">hidden_players[5]</td>
+      <td class="num mono">76561199495320320.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:4xse7hyv5pqaskmlkvjelsq2/dev.regnault.webfishing.save/3mbuy5wrx3h2w" target="_blank" rel="noreferrer">at://did:plc:4xse7hyv5pqaskmlkvjelsq2/dev.regnault.webfishing.save/3mbuy5wrx3h2w</a></td>
+      <td class="path">hidden_players[6]</td>
+      <td class="num mono">76561199523801780.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:4xse7hyv5pqaskmlkvjelsq2/dev.regnault.webfishing.save/3mbuy5wrx3h2w" target="_blank" rel="noreferrer">at://did:plc:4xse7hyv5pqaskmlkvjelsq2/dev.regnault.webfishing.save/3mbuy5wrx3h2w</a></td>
+      <td class="path">hidden_players[7]</td>
+      <td class="num mono">76561199589135890.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:4xse7hyv5pqaskmlkvjelsq2/dev.regnault.webfishing.save/3mbuy5wrx3h2w" target="_blank" rel="noreferrer">at://did:plc:4xse7hyv5pqaskmlkvjelsq2/dev.regnault.webfishing.save/3mbuy5wrx3h2w</a></td>
+      <td class="path">hidden_players[8]</td>
+      <td class="num mono">76561199679763140.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:b6iozvav2kadefl6flp6xiin/dev.regnault.webfishing.save/3mbuxz45luu22" target="_blank" rel="noreferrer">at://did:plc:b6iozvav2kadefl6flp6xiin/dev.regnault.webfishing.save/3mbuxz45luu22</a></td>
+      <td class="path">hidden_players[0]</td>
+      <td class="num mono">76561199494810240.0</td>
+      <td class="dim">beyond 2^53</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:4agp2hcrps6ou4vjv7uux7dm/test.a.b.c.aaaaaa/3ksqv5wm2smbf" target="_blank" rel="noreferrer">at://did:plc:4agp2hcrps6ou4vjv7uux7dm/test.a.b.c.aaaaaa/3ksqv5wm2smbf</a></td>
+      <td class="path"></td>
+      <td class="num mono">73786976294838210000.0</td>
+      <td class="dim">beyond int64</td>
+    </tr>
+<tr>
+      <td class="uri"><a class="mono" href="https://pds.ls/at://did:plc:4agp2hcrps6ou4vjv7uux7dm/test.a.b.c.aaaaaa/3ksqv672kqpa4" target="_blank" rel="noreferrer">at://did:plc:4agp2hcrps6ou4vjv7uux7dm/test.a.b.c.aaaaaa/3ksqv672kqpa4</a></td>
+      <td class="path"></td>
+      <td class="num mono">73786976294838210000.0</td>
+      <td class="dim">beyond int64</td>
+    </tr></tbody>
+</table>
+
+<h2>Data</h2>
+<p>The findings behind this report, as Parquet (readable directly by DuckDB, pandas,
+polars or R — no server needed):</p>
+<table><thead><tr><th>file</th><th class="num">size</th><th>contents</th></tr></thead>
+<tbody><tr><td><a href='data/violations.parquet'>violations.parquet</a></td><td class='num'>53.6 MB</td><td class='dim'>every finding, one row per finding per record version</td></tr><tr><td><a href='data/records.parquet'>records.parquet</a></td><td class='num'>123.4 MB</td><td class='dim'>flagged record bodies: original CBOR and a JSON rendering</td></tr><tr><td><a href='data/scan_stats.parquet'>scan_stats.parquet</a></td><td class='num'>0.8 MB</td><td class='dim'>everything scanned, per collection / op / witnessed day</td></tr><tr><td><a href='data/handles.parquet'>handles.parquet</a></td><td class='num'>0.0 MB</td><td class='dim'>DID to handle cache</td></tr><tr><td><a href='data/README.md'>README.md</a></td><td class='num'>-</td><td class='dim'>what the columns mean, and how to load the files</td></tr></tbody></table>
+
+<footer>
+  Generated from <code>cborcheck</code> in ClickHouse · 2026-11-12 23:24 UTC ·
+  4,151,088 findings over 25,365,355,119 records.
+  Reproduce with <code>scripts/build_cbor_report.py</code>.
+</footer>
+
+</div>
+<script>
+  const f = document.getElementById('filter');
+  const rows = Array.from(document.querySelectorAll('#appendix tbody tr'));
+  f.addEventListener('input', () => {
+    const q = f.value.toLowerCase();
+    for (const r of rows) r.style.display = r.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+</script>
+</body>
+</html>
