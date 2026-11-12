@@ -386,6 +386,14 @@ whole number. To test that, every float in the corpus was classified by width, f
     </tr>
 <tr>
       <td><code>app.bsky.feed.post</code></td>
+      <td class="path">(record itself)</td>
+      <td class="num">1</td>
+      <td class="num">1</td>
+      <td class="num mono">73786976294838210000.0</td>
+      <td><div class="bar"><span style="width:1.0%"></span></div></td>
+    </tr>
+<tr>
+      <td><code>app.bsky.feed.post</code></td>
       <td class="path">embed.images[].aspectRatio.width</td>
       <td class="num">1</td>
       <td class="num">1</td>
@@ -398,14 +406,6 @@ whole number. To test that, every float in the corpus was classified by width, f
       <td class="num">1</td>
       <td class="num">1</td>
       <td class="num mono">-18446744073709552000.0</td>
-      <td><div class="bar"><span style="width:1.0%"></span></div></td>
-    </tr>
-<tr>
-      <td><code>app.bsky.feed.post</code></td>
-      <td class="path">(record itself)</td>
-      <td class="num">1</td>
-      <td class="num">1</td>
-      <td class="num mono">73786976294838210000.0</td>
       <td><div class="bar"><span style="width:1.0%"></span></div></td>
     </tr>
 <tr>
@@ -1006,13 +1006,13 @@ about the proposal; the rest are existing data-model and serialization issues.</
 <table>
   <thead><tr><th>did</th><th>handle</th><th class="num">findings</th><th>kinds</th></tr></thead>
   <tbody><tr><td><a class="mono" href="https://pds.ls/did:plc:s3m33wvdsixxr2ifnkldlfp3d" target="_blank" rel="noreferrer">did:plc:s3m33wvdsixxr2ifnkldlfp3d</a></td><td><strong>-</strong></td><td class='num'>31</td><td class='mono dim'>invalid_utf8</td></tr>
-<tr><td><a class="mono" href="https://pds.ls/did:plc:65r3dy2t6xfuwidxmzvctvsh" target="_blank" rel="noreferrer">did:plc:65r3dy2t6xfuwidxmzvctvsh</a></td><td><strong>-</strong></td><td class='num'>15</td><td class='mono dim'>invalid_utf8, cid_malformed</td></tr>
 <tr><td><a class="mono" href="https://pds.ls/did:plc:r3uyey5ys7u33f4gepc4we7i" target="_blank" rel="noreferrer">did:plc:r3uyey5ys7u33f4gepc4we7i</a></td><td><strong>-</strong></td><td class='num'>15</td><td class='mono dim'>invalid_utf8</td></tr>
+<tr><td><a class="mono" href="https://pds.ls/did:plc:65r3dy2t6xfuwidxmzvctvsh" target="_blank" rel="noreferrer">did:plc:65r3dy2t6xfuwidxmzvctvsh</a></td><td><strong>-</strong></td><td class='num'>15</td><td class='mono dim'>invalid_utf8, cid_malformed</td></tr>
 <tr><td><a class="mono" href="https://pds.ls/did:plc:vwzwgnygau7ed7b7wt5ux7y2" target="_blank" rel="noreferrer">did:plc:vwzwgnygau7ed7b7wt5ux7y2</a></td><td><strong>retr0.id</strong></td><td class='num'>14</td><td class='mono dim'>malformed, invalid_utf8</td></tr>
 <tr><td><a class="mono" href="https://pds.ls/did:plc:4fzofkhhlbiodiuosseu3bja" target="_blank" rel="noreferrer">did:plc:4fzofkhhlbiodiuosseu3bja</a></td><td><strong>-</strong></td><td class='num'>13</td><td class='mono dim'>invalid_utf8</td></tr>
 <tr><td><a class="mono" href="https://pds.ls/did:plc:4agp2hcrps6ou4vjv7uux7dm" target="_blank" rel="noreferrer">did:plc:4agp2hcrps6ou4vjv7uux7dm</a></td><td><strong>535.bsky.social</strong></td><td class='num'>11</td><td class='mono dim'>malformed</td></tr>
 <tr><td><a class="mono" href="https://pds.ls/did:plc:eayps5647civfaexwfflzhuq" target="_blank" rel="noreferrer">did:plc:eayps5647civfaexwfflzhuq</a></td><td><strong>-</strong></td><td class='num'>9</td><td class='mono dim'>invalid_utf8, key_duplicate</td></tr>
-<tr><td><a class="mono" href="https://pds.ls/did:plc:eyirpfrgthkr4n2nl6j2msj2" target="_blank" rel="noreferrer">did:plc:eyirpfrgthkr4n2nl6j2msj2</a></td><td><strong>-</strong></td><td class='num'>7</td><td class='mono dim'>invalid_utf8</td></tr></tbody>
+<tr><td><a class="mono" href="https://pds.ls/did:plc:okrw4xs7ojqqzrpibiytnnis" target="_blank" rel="noreferrer">did:plc:okrw4xs7ojqqzrpibiytnnis</a></td><td><strong>-</strong></td><td class='num'>7</td><td class='mono dim'>invalid_utf8</td></tr></tbody>
 </table>
 <p class="sub">It writes records in <code>com.example.*</code> collections containing a CIDv0 link, a
 bare byte-string record, a bare array record, roughly 1000-deep nested arrays, invalid UTF-8, and
@@ -1033,7 +1033,7 @@ and none of them affect ordinary application data.</p>
   on read, so a crash-restart rescan does not inflate them. Scanned-record totals are approximate.</li>
   <li><strong>Coverage.</strong> Deleted records are absent (the archive only holds what exists), and
   records that were never committed to the firehose do not appear. The audit ran to the sealed tip on
-  2026-11-12 23:24 UTC.</li>
+  2026-11-12 23:40 UTC.</li>
   <li><strong>Severity.</strong> Only <code>float64_integral</code>, <code>float16</code>,
   <code>float32</code>, <code>neg_zero</code> and <code>nonfinite</code> conflict with the proposal as
   written. Everything else here violates the current data model and would still need fixing.</li>
@@ -2318,13 +2318,18 @@ and none of them affect ordinary application data.</p>
 </table>
 
 <h2>Data</h2>
-<p>The findings behind this report, as Parquet (readable directly by DuckDB, pandas,
-polars or R — no server needed):</p>
-<table><thead><tr><th>file</th><th class="num">size</th><th>contents</th></tr></thead>
-<tbody><tr><td><a href='data/violations.parquet'>violations.parquet</a></td><td class='num'>53.6 MB</td><td class='dim'>every finding, one row per finding per record version</td></tr><tr><td><a href='data/records.parquet'>records.parquet</a></td><td class='num'>123.4 MB</td><td class='dim'>flagged record bodies: original CBOR and a JSON rendering</td></tr><tr><td><a href='data/scan_stats.parquet'>scan_stats.parquet</a></td><td class='num'>0.8 MB</td><td class='dim'>everything scanned, per collection / op / witnessed day</td></tr><tr><td><a href='data/handles.parquet'>handles.parquet</a></td><td class='num'>0.0 MB</td><td class='dim'>DID to handle cache</td></tr><tr><td><a href='data/README.md'>README.md</a></td><td class='num'>-</td><td class='dim'>what the columns mean, and how to load the files</td></tr></tbody></table>
+<p>The Parquet files behind this report are in the
+<a href="https://github.com/iameli/cbor-naughty-list-2026-11/releases/tag/release" target="_blank" rel="noreferrer">November 2026 data release</a> —
+readable directly by DuckDB, pandas, polars or R, with no server to stand up.</p>
+<table><thead><tr><th>file</th><th>contents</th></tr></thead>
+<tbody><tr><td><code>violations.parquet</code></td><td class='dim'>every finding, one row per finding per record version</td></tr>
+<tr><td><code>records.parquet</code></td><td class='dim'>flagged record bodies: original CBOR and a JSON rendering</td></tr>
+<tr><td><code>scan_stats.parquet</code></td><td class='dim'>everything scanned, per collection / op / witnessed day</td></tr>
+<tr><td><code>handles.parquet</code></td><td class='dim'>DID to handle cache</td></tr>
+<tr><td><code>README.md</code></td><td class='dim'>what the columns mean, and how to load the files</td></tr></tbody></table>
 
 <footer>
-  Generated from <code>cborcheck</code> in ClickHouse · 2026-11-12 23:24 UTC ·
+  Generated from <code>cborcheck</code> in ClickHouse · 2026-11-12 23:40 UTC ·
   4,151,088 findings over 25,365,355,119 records.
   Reproduce with <code>scripts/build_cbor_report.py</code>.
 </footer>
